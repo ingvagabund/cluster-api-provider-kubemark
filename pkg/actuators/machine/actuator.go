@@ -246,7 +246,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 			Containers: []corev1.Container{
 				{
 					Name:            "hollow-kubelet",
-					Image:           "docker.io/gofed/kubemark:v1.11.3-3",
+					Image:           "docker.io/gofed/kubemark:v1.11.3-4",
 					ImagePullPolicy: corev1.PullAlways,
 					Ports: []corev1.ContainerPort{
 						{ContainerPort: 4194},
@@ -287,7 +287,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 				},
 				{
 					Name:            "hollow-proxy",
-					Image:           "docker.io/gofed/kubemark:v1.11.3-3",
+					Image:           "docker.io/gofed/kubemark:v1.11.3-4",
 					ImagePullPolicy: corev1.PullAlways,
 					Env: []corev1.EnvVar{
 						{
