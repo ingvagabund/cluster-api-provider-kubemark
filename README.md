@@ -91,5 +91,5 @@ TODO(jchaloup): describe what can be set in the config
 
 ## Kubemark
 
-The provided kubemark (through `gofed/kubemark-machine-controllers:a230226`) is slightly updated version of the kubemark.
+The provided kubemark (through `gofed/kubemark-machine-controllers:d4f6edb`) is slightly updated version of the kubemark.
 I plan to open an upstream PR with changes that are needed to allow to force kubelet to go Unready and back.
