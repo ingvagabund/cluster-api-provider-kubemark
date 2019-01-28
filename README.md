@@ -85,11 +85,44 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
     $ cd config/default && kustomize build | kubectl apply -f -
     ```
 
-## kubemark provider config
+## Provider config
 
-TODO(jchaloup): describe what can be set in the config
+Currently the kubemark actuator allows to configure the following test scenarios:
+
+- have a node report `Unready` status (e.g. for 5s), then Ready (e.g. for the next 40s) and again (periodically):
+  ```yaml
+  apiVersion: kubemarkproviderconfig.k8s.io/v1alpha1
+  kind: KubemarkMachineProviderConfig
+  unhealthyDuration: 5s
+  healthyDuration: 40s
+  turnUnhealthyPeriodically: true
+  ```
+
+- have a node report `Unready` status (e.g. 40s after kubelet startup) indefinitely:
+  ```yaml
+  apiVersion: kubemarkproviderconfig.k8s.io/v1alpha1
+  kind: KubemarkMachineProviderConfig
+  unhealthyDuration: 40s
+  turnUnhealthyAfter: true
+  ```
 
 ## Kubemark
 
 The provided kubemark (through `gofed/kubemark-machine-controllers:d4f6edb`) is slightly updated version of the kubemark.
-I plan to open an upstream PR with changes that are needed to allow to force kubelet to go Unready and back.
+The list of PRs that allow kubemark to force kubelet to have node go Unready and/or back.
+
+**Upstream PRs**:
+- Setting ProviderID when running Kubemark: https://github.com/kubernetes/kubernetes/pull/73393
+- Injecting external Kubelet runtime health checker to simulate node failures:  https://github.com/kubernetes/kubernetes/pull/73398
+- Allowing Kubemark to conditionally distrupt Kubelet runtime: https://github.com/kubernetes/kubernetes/pull/73399
+
+**How to build the kubemark image**
+
+1. Clone `k8s.io/kubernetes` repo under `$GOPATH/src/k8s.io/kubernetes`
+1. Checkout to required version (e.g. `$ git checkout v1.11.3`)
+1. Apply the PRs (and rebase if needed)
+1. Run `make WHAT="cmd/kubemark"`
+1. `$ cp _output/bin/kubemark cluster/images/kubemark/`
+1. `cd cluster/images/kubemark/`
+1. Build docker image: `make build REGISTRY=... IMAGE_TAG=...`
+1. Push the docker image to registry: `docker push $REGISTRY/`

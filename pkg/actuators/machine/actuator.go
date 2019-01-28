@@ -186,9 +186,6 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		testFlags = fmt.Sprintf("--turn-unhealthy-after=true --healthy-duration=%v", machineProviderConfig.HealthyDuration.Duration)
 	} else if machineProviderConfig.TurnUnhealthyPeriodically {
 		testFlags = fmt.Sprintf("--turn-unhealthy-periodically=true --unhealthy-duration=%v --healthy-duration=%v", machineProviderConfig.UnhealthyDuration.Duration, machineProviderConfig.HealthyDuration.Duration)
-	} else {
-		// TODO(jchaloup): be more descriptive here
-		return nil, fmt.Errorf("Testing configuration not recognized")
 	}
 
 	// TODO(jchaloup): generate unique kubeconfig for the hollow node (so we don't
@@ -246,7 +243,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 			Containers: []corev1.Container{
 				{
 					Name:            "hollow-kubelet",
-					Image:           "docker.io/gofed/kubemark:v1.11.3-4",
+					Image:           "docker.io/gofed/kubemark:v1.11.3-5",
 					ImagePullPolicy: corev1.PullAlways,
 					Ports: []corev1.ContainerPort{
 						{ContainerPort: 4194},
@@ -287,7 +284,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 				},
 				{
 					Name:            "hollow-proxy",
-					Image:           "docker.io/gofed/kubemark:v1.11.3-4",
+					Image:           "docker.io/gofed/kubemark:v1.11.3-5",
 					ImagePullPolicy: corev1.PullAlways,
 					Env: []corev1.EnvVar{
 						{
