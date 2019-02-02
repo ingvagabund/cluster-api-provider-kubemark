@@ -76,9 +76,9 @@ spec:
             cpu: 100m
             memory: 30Mi
       - name: cluster-autoscaler
-        image: docker.io/gofed/cluster-autoscaler:v1.12.0-1
+        image: docker.io/openshift/origin-cluster-autoscaler:v4.0
         command:
-          - /cluster-autoscaler
+          - /bin/cluster-autoscaler
         args:
           - --logtostderr
           - --scan-interval=10s
