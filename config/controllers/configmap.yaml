@@ -9,6 +9,11 @@ data:
     while true; do
       echo "Checking to NotReady nodes"
       for node in $(kubectl get nodes -o json | jq '.items[].metadata.name' --raw-output); do
+        # skip non hollow-node
+        if [ ${node:0:11} != "hollow-node" ]; then
+          echo "skipping $node"
+          continue
+        fi
         status=$(kubectl get node $node -o json | jq '.status.conditions[] | select(.type=="Ready") | .status' --raw-output)
         if [ $status != "Unknown" ]; then
           continue
