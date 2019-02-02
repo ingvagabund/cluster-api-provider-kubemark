@@ -92,32 +92,6 @@ check: fmt vet lint test ## Check your code
 unit: # Run unit test
 	$(DOCKER_CMD) go test -race -cover ./cmd/... ./pkg/...
 
-.PHONY: integration
-integration: ## Run integration test
-	$(DOCKER_CMD) go test -v github.com/openshift/cluster-api-provider-kubemark/test/integration
-
-.PHONY: build-e2e
-build-e2e:
-	go test -c -o bin/e2e.test github.com/openshift/cluster-api-provider-kubemark/test/machines
-
-.PHONY: k8s-e2e
-k8s-e2e: ## Run k8s specific e2e test
-	# KUBECONFIG and SSH_PK dirs needs to be mounted inside a container if tests are run in containers
-	go test -timeout 20m \
-		-v github.com/openshift/cluster-api-provider-kubemark/test/machines \
-		-kubeconfig $${KUBECONFIG:-~/.kube/config} \
-		-ssh-key $${SSH_PK:-~/.ssh/id_rsa} \
-		-machine-controller-image $${ACTUATOR_IMAGE:-gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1} \
-		-machine-manager-image $${ACTUATOR_IMAGE:-gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1} \
-		-nodelink-controller-image $$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator) \
-		-cluster-id $${ENVIRONMENT_ID:-""} \
-		-ginkgo.v \
-		-args -v 5 -logtostderr true
-
-.PHONY: test-e2e
-test-e2e: ## Run e2e validation/gating test
-	go run ./test/e2e/*.go -alsologtostderr
-
 .PHONY: lint
 lint: ## Go lint your code
 	hack/go-lint.sh -min_confidence 0.3 $$(go list -f '{{ .ImportPath }}' ./... | grep -v -e 'github.com/openshift/cluster-api-provider-kubemark/test' -e 'github.com/openshift/cluster-api-provider-kubemark/pkg/cloud/aws/client/mock')
