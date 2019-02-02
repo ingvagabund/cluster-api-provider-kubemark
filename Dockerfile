@@ -10,6 +10,13 @@ RUN INSTALL_PKGS=" \
       " && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
-    yum clean all
+    yum clean all && \
+    curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && \
+    chmod +x ./kubectl && \
+    mv ./kubectl /bin/kubectl && \
+    curl -LO https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 && \
+    chmod +x ./jq-linux64 && \
+    mv ./jq-linux64 /bin/jq
+
 COPY --from=builder /go/src/github.com/openshift/cluster-api-provider-kubemark/manager /
 COPY --from=builder /go/src/github.com/openshift/cluster-api-provider-kubemark/machine-controller-manager /

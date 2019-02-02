@@ -24,4 +24,5 @@ resources:
 - ../crds/cluster.crd.yaml
 - ../rbac/rbac_role.yaml
 - ../rbac/rbac_role_binding.yaml
+- ../controllers/configmap.yaml
 - ../controllers/deployment.yaml

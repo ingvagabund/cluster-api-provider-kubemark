@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deleteunreadynodes
+data:
+  entrypoint.sh: |-
+    #!/bin/bash
+    while true; do
+      echo "Checking to NotReady nodes"
+      for node in $(kubectl get nodes -o json | jq '.items[].metadata.name' --raw-output); do
+        status=$(kubectl get node $node -o json | jq '.status.conditions[] | select(.type=="Ready") | .status' --raw-output)
+        if [ $status != "Unknown" ]; then
+          continue
+        fi
+        # Delete node
+        echo "Deleting node $node"
+        kubectl delete node $node
+      done
+      sleep 10s
+    done
