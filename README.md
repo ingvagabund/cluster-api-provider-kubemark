@@ -45,7 +45,7 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
     && rm docker-machine-driver-kvm2
     ```
 
-2. **Deploying the cluster**
+1. **Deploying the cluster**
 
     To install minikube `v0.30.0`, you can run:
 
@@ -62,24 +62,7 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
     The minikube enables `NodeRestriction` admission plugin which does not allow to use the same minikube kubeconfig for multiple kubelets
     and to send create requests from static (mirror) nodes.
 
-3. **Create configmap with kubemark kubeconfig**
-
-    Assuming the kubeconfig file is under `~/.kube/kubelet.conf`:
-
-    ```
-    $ kubectl create secret generic "kubeconfig" --type=Opaque --from-literal=kubelet.kubeconfig="$(cat ~/.kube/kubelet.conf)"
-    ```
-
-    The kubeconfig file can be collected from the minikube by running:
-
-    ```
-    $ sudo minikube ssh 'sudo cat /etc/kubernetes/kubelet.conf' > ~/.kube/kubelet.conf
-    ```
-
-    Don't forget to update the `server` to point to reachable ip address (e.g. `https://192.168.39.60:8443`).
-    Otherwise, the config sets the field to `localhost` which is not accessible from running kubemark.
-
-4. **Deploying the cluster-api stack manifests**
+1. **Deploying the cluster-api stack manifests**
 
     ``` sh
     $ cd config/default && kustomize build | kubectl apply -f -
@@ -115,6 +98,7 @@ The list of PRs that allow kubemark to force kubelet to have node go Unready and
 - Setting ProviderID when running Kubemark: https://github.com/kubernetes/kubernetes/pull/73393
 - Injecting external Kubelet runtime health checker to simulate node failures:  https://github.com/kubernetes/kubernetes/pull/73398
 - Allowing Kubemark to conditionally distrupt Kubelet runtime: https://github.com/kubernetes/kubernetes/pull/73399
+- Allowing kubemark to read in-cluster kubeconfig: TBD
 
 **How to build the kubemark image**
 

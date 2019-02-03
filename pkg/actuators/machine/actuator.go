@@ -188,12 +188,6 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		testFlags = fmt.Sprintf("--turn-unhealthy-periodically=true --unhealthy-duration=%v --healthy-duration=%v", machineProviderConfig.UnhealthyDuration.Duration, machineProviderConfig.HealthyDuration.Duration)
 	}
 
-	// TODO(jchaloup): generate unique kubeconfig for the hollow node (so we don't
-	// have to remove NodeRestriction admission plagin)
-	// sudo kubectl create secret generic "kubeconfig" --type=Opaque --from-literal=kubelet.kubeconfig="$(cat ~/.kube/kubelet.conf)"
-	// Right know it's up to the infrastructure to provide valid kubeconfig.
-	// Though, it could be generated for each kubemark node separately later.
-
 	// Just create pod/RC deploying hollow node.
 	// Preferring just pods since RC creates new pods which creates new nodes.
 	// Thus, it's important to have the machine controller actually respin the pod
@@ -218,22 +212,6 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 			},
 			Volumes: []corev1.Volume{
 				{
-					Name: "kubeconfig-volume",
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: "kubeconfig",
-						},
-					},
-				},
-				{
-					Name: "logs-volume",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/var/log",
-						},
-					},
-				},
-				{
 					Name: "no-serviceaccount-access-to-real-master",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
@@ -243,7 +221,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 			Containers: []corev1.Container{
 				{
 					Name:            "hollow-kubelet",
-					Image:           "docker.io/gofed/kubemark:v1.11.3-5",
+					Image:           "docker.io/gofed/kubemark:v1.11.3-6",
 					ImagePullPolicy: corev1.PullAlways,
 					Ports: []corev1.ContainerPort{
 						{ContainerPort: 4194},
@@ -260,18 +238,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 							},
 						},
 					},
-					Command: []string{"/bin/sh", "-c", fmt.Sprintf("/kubemark --morph=kubelet --name=$(NODE_NAME) %v --node-status-update-frequency=2s --no-schedule=true --kubeconfig=/kubeconfig/kubelet.kubeconfig --kube-api-content-type=application/vnd.kubernetes.protobuf --alsologtostderr 1>>/var/log/kubelet-$(NODE_NAME).log 2>&1", testFlags)},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      "kubeconfig-volume",
-							MountPath: "/kubeconfig",
-							ReadOnly:  true,
-						},
-						{
-							Name:      "logs-volume",
-							MountPath: "/var/log",
-						},
-					},
+					Command: []string{"/bin/sh", "-c", fmt.Sprintf("/kubemark --morph=kubelet --name=$(NODE_NAME) %v --node-status-update-frequency=2s --no-schedule=true --kube-api-content-type=application/vnd.kubernetes.protobuf --alsologtostderr", testFlags)},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu":    resource.MustParse("40m"),
@@ -284,7 +251,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 				},
 				{
 					Name:            "hollow-proxy",
-					Image:           "docker.io/gofed/kubemark:v1.11.3-5",
+					Image:           "docker.io/gofed/kubemark:v1.11.3-6",
 					ImagePullPolicy: corev1.PullAlways,
 					Env: []corev1.EnvVar{
 						{
@@ -296,18 +263,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 							},
 						},
 					},
-					Command: []string{"/bin/sh", "-c", "/kubemark --morph=proxy --name=$(NODE_NAME) --kubeconfig=/kubeconfig/kubelet.kubeconfig --kube-api-content-type=application/vnd.kubernetes.protobuf --alsologtostderr 1>>/var/log/kubelet-$(NODE_NAME).log 2>&1"},
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      "kubeconfig-volume",
-							MountPath: "/kubeconfig",
-							ReadOnly:  true,
-						},
-						{
-							Name:      "logs-volume",
-							MountPath: "/var/log",
-						},
-					},
+					Command: []string{"/bin/sh", "-c", "/kubemark --morph=proxy --name=$(NODE_NAME) --kube-api-content-type=application/vnd.kubernetes.protobuf --alsologtostderr"},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu":    resource.MustParse("40m"),
