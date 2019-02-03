@@ -56,16 +56,13 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
     To deploy the cluster:
 
     ```
-    # minikube start --vm-driver kvm2 --extra-config=apiserver.enable-admission-plugins=Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota --kubernetes-version v1.11.3 --v 5
+    # minikube start --vm-driver kvm2 --kubernetes-version v1.11.3 --v 5
     ```
-
-    The minikube enables `NodeRestriction` admission plugin which does not allow to use the same minikube kubeconfig for multiple kubelets
-    and to send create requests from static (mirror) nodes.
 
 1. **Deploying the cluster-api stack manifests**
 
     ``` sh
-    $ cd config/default && kustomize build | kubectl apply -f -
+    $ cd config/default && kustomize build | kubectl apply --validate=false -f -
     ```
 
 ## Provider config

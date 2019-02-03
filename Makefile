@@ -85,6 +85,10 @@ push:
 	docker push "$(IMAGE):$(VERSION)"
 	docker push "$(IMAGE):$(MUTABLE_TAG)"
 
+.PHONY: deploy
+deploy:
+	./hack/deploy.sh
+
 .PHONY: check
 check: fmt vet lint test ## Check your code
 
