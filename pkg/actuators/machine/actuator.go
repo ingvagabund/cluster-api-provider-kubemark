@@ -19,7 +19,7 @@ package machine
 import (
 	"context"
 	"fmt"
-	"strings"
+	"sort"
 	"time"
 
 	"github.com/go-log/log/info"
@@ -34,13 +34,15 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	providerconfigv1 "github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig/v1alpha1"
+	uuid "github.com/satori/go.uuid"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubedrain "github.com/openshift/kubernetes-drain"
+
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 const (
@@ -51,6 +53,10 @@ const (
 
 	// MachineCreationFailed indicates that machine creation failed
 	MachineCreationFailed = "MachineCreationFailed"
+
+	kubemarkNamespace     = "kubemark-actuator"
+	machineNameLabel      = "machine.k8s.io/machine-name"
+	machineNamespaceLabel = "machine.k8s.io/machine-namespace"
 )
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
@@ -192,12 +198,16 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	// Preferring just pods since RC creates new pods which creates new nodes.
 	// Thus, it's important to have the machine controller actually respin the pod
 	// instead of the RC.
-	podNamedPair := machine2pod(machine)
+	podUUID := uuid.NewV4().String()
 	privileged := true
 	hollowNode := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: podNamedPair.Namespace,
-			Name:      podNamedPair.Name,
+			Namespace: kubemarkNamespace,
+			Name:      podUUID,
+			Labels: map[string]string{
+				machineNameLabel:      machine.Name,
+				machineNamespaceLabel: machine.Namespace,
+			},
 		},
 		Spec: corev1.PodSpec{
 			InitContainers: []corev1.Container{
@@ -272,6 +282,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 					},
 				},
 			},
+			ServiceAccountName: "kubemark",
 		},
 	}
 
@@ -349,7 +360,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	machinePod, err := a.getMachinePod(machine)
 	if err != nil {
 		// TODO(jchaloup): maybe requeue after?
-		err := fmt.Errorf("unable to get machine pod for %#v: %v", machine2pod(machine), err)
+		err := fmt.Errorf("unable to get machine pod for %v/%v: %v", machine.Namespace, machine.Name, err)
 		glog.Error(err)
 		return err
 	}
@@ -368,7 +379,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	// Thus, re-queue with error.
 	// (pods may stay in terminated state for a while)
 	if err := kubeClient.CoreV1().Pods(machinePod.Namespace).Delete(machinePod.Name, nil); err != nil {
-		glog.Warning("Unable to delete machine pod %#v: %v", machine2pod(machine), err)
+		glog.Warning("unable to get machine pod for %v/%v: %v", machine.Namespace, machine.Name, err)
 		return a.handleMachineError(machine, apierrors.DeleteMachine(err.Error()), noEventAction)
 	}
 
@@ -402,7 +413,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 		return fmt.Errorf("attempted to update machine but no machine pods found")
 	}
 
-	glog.Infof("found machine pod %#v for machine", machine2pod(machine))
+	glog.Infof("found machine pod %v for machine", machinePod.Name)
 
 	// We do not support making changes to pre-existing instances, just update status.
 	return a.updateStatus(machine, machinePod)
@@ -424,26 +435,36 @@ func (a *Actuator) Exists(context context.Context, cluster *clusterv1.Cluster, m
 	}
 
 	// If more than one result was returned, it will be handled in Update.
-	glog.Infof("machine pod exists as %#v", machine2pod(machine))
+	glog.Infof("machine pod exists as %v", machinePod.Name)
 	return true, nil
 }
 
 func (a *Actuator) getMachinePod(machine *clusterv1.Machine) (*corev1.Pod, error) {
-	machinePodNamePair := machine2pod(machine)
 	kubeClient, err := kubernetes.NewForConfig(a.config)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build kube client: %v", err)
 	}
 
-	machinePod, err := kubeClient.CoreV1().Pods(machinePodNamePair.Namespace).Get(machinePodNamePair.Name, metav1.GetOptions{})
+	machinePods, err := kubeClient.CoreV1().Pods(kubemarkNamespace).List(metav1.ListOptions{
+		LabelSelector: labels.Set(map[string]string{
+			machineNameLabel:      machine.Name,
+			machineNamespaceLabel: machine.Namespace,
+		}).AsSelector().String(),
+	})
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("unable to get machine pod for %#v: %v", machinePodNamePair, err)
+		return nil, fmt.Errorf("unable to get machine pod for %v/%v: %v", machine.Namespace, machine.Name, err)
+	}
+	if len(machinePods.Items) == 0 {
+		return nil, nil
 	}
 
-	return machinePod, nil
+	// select the newest pod
+	pods := machinePods.Items
+	sort.Slice(pods, func(i, j int) bool {
+		return pods[i].CreationTimestamp.Time.After(pods[j].CreationTimestamp.Time)
+	})
+
+	return &pods[0], nil
 }
 
 // updateStatus calculates the new machine status, checks if anything has changed, and updates if so.

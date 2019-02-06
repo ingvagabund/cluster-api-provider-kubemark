@@ -167,8 +167,3 @@ func findKubemarkMachineProviderCondition(conditions []providerconfigv1.Kubemark
 	}
 	return nil
 }
-
-func machine2pod(machine *clusterv1.Machine) client.ObjectKey {
-	// TODO(jchaloup): should we allocate special namespace for pods with hollow nodes?
-	return client.ObjectKey{Namespace: machine.Namespace, Name: fmt.Sprintf("hollow-node-%v", machine.Name)}
-}

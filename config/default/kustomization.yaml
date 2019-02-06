@@ -1,5 +1,5 @@
 # Adds namespace to all resources.
-namespace: default
+# namespace: default
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named
@@ -22,6 +22,7 @@ resources:
 - ../crds/machineset.crd.yaml
 - ../crds/machinedeployment.crd.yaml
 - ../crds/cluster.crd.yaml
+- ../rbac/service_account.yaml
 - ../rbac/rbac_role.yaml
 - ../rbac/rbac_role_binding.yaml
 - ../controllers/configmap.yaml

@@ -7,13 +7,9 @@ data:
   entrypoint.sh: |-
     #!/bin/bash
     while true; do
-      echo "Checking to NotReady nodes"
-      for node in $(kubectl get nodes -o json | jq '.items[].metadata.name' --raw-output); do
-        # skip non hollow-node
-        if [ ${node:0:11} != "hollow-node" ]; then
-          echo "skipping $node"
-          continue
-        fi
+      echo "Checking NotReady nodes"
+      for node in $(kubectl get nodes --selector="machine.k8s.io/delete-unready-node" -o json | jq '.items[].metadata.name' --raw-output); do
+        echo "Checking node $node"
         status=$(kubectl get node $node -o json | jq '.status.conditions[] | select(.type=="Ready") | .status' --raw-output)
         if [ $status != "Unknown" ]; then
           continue
