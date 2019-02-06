@@ -8,12 +8,20 @@ data:
     #!/bin/bash
     while true; do
       echo "Checking NotReady nodes"
-      for node in $(kubectl get nodes --selector="machine.k8s.io/delete-unready-node" -o json | jq '.items[].metadata.name' --raw-output); do
+      for node in $(kubectl get nodes -o json | jq '.items[].metadata.name' --raw-output); do
         echo "Checking node $node"
+
+        taint=$(kubectl get nodes $node -o json | jq '.spec | select(.taints!=null) | .taints[] | select(.key=="kubemark") | select (.!=null) | select(.value=="true")' | wc -l)
+        if [ $taint -eq 0 ]; then
+          echo "Skipping $node, no 'kubemark' taint found"
+          continue
+        fi
+
         status=$(kubectl get node $node -o json | jq '.status.conditions[] | select(.type=="Ready") | .status' --raw-output)
         if [ $status != "Unknown" ]; then
           continue
         fi
+
         # Delete node
         echo "Deleting node $node"
         kubectl delete node $node
