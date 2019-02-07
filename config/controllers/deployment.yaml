@@ -75,27 +75,6 @@ spec:
           limits:
             cpu: 100m
             memory: 30Mi
-      - name: cluster-autoscaler
-        image: docker.io/openshift/origin-cluster-autoscaler:v4.0
-        command:
-          - /bin/cluster-autoscaler
-        args:
-          - --logtostderr
-          - --scan-interval=10s
-          - --cloud-provider=cluster-api
-          - --scale-down-delay-after-add=10s
-          - --scale-down-delay-after-delete=10s
-          - --scale-down-delay-after-failure=10s
-          - --scale-down-unneeded-time=10s
-          - --leader-elect=false
-          - -v=4
-        resources:
-          requests:
-            cpu: 500m
-            memory: 200Mi
-          limits:
-            cpu: 500m
-            memory: 200Mi
       - name: unready-nodes-gb
         image: gofed/kubemark-machine-controllers:1e737b9
         command:
