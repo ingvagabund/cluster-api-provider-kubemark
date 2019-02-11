@@ -19,11 +19,11 @@ import (
 
 	"github.com/golang/glog"
 	machineactuator "github.com/openshift/cluster-api-provider-kubemark/pkg/actuators/machine"
-	"github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig/v1alpha1"
+	"github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig/v1beta1"
+	clusterapis "github.com/openshift/cluster-api/pkg/apis"
+	"github.com/openshift/cluster-api/pkg/controller/machine"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
-	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
-	"sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -76,7 +76,7 @@ func main() {
 }
 
 func initActuator(mgr manager.Manager) (*machineactuator.Actuator, error) {
-	codec, err := v1alpha1.NewCodec()
+	codec, err := v1beta1.NewCodec()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create codec: %v", err)
 	}

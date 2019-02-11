@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains API Schema definitions for the kubemarkproviderconfig v1alpha1 API group
+// Package v1beta1 contains API Schema definitions for the kubemarkproviderconfig v1beta1 API group
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=kubemarkproviderconfig.k8s.io
-package v1alpha1
+package v1beta1

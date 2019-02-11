@@ -16,22 +16,22 @@ limitations under the License.
 
 // NOTE: Boilerplate only.  Ignore this file.
 
-// Package v1alpha1 contains API Schema definitions for the kubemarkproviderconfig v1alpha1 API group
+// Package v1beta1 contains API Schema definitions for the kubemarkproviderconfig v1beta1 API group
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=kubemarkproviderconfig.k8s.io
-package v1alpha1
+package v1beta1
 
 import (
 	"bytes"
 	"fmt"
 
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
 

@@ -23,16 +23,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	providerconfigv1 "github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig/v1alpha1"
+	providerconfigv1 "github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig/v1beta1"
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // providerConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine, codec *providerconfigv1.KubemarkProviderConfigCodec) (*providerconfigv1.KubemarkMachineProviderConfig, error) {
+func providerConfigFromMachine(client client.Client, machine *machinev1.Machine, codec *providerconfigv1.KubemarkProviderConfigCodec) (*providerconfigv1.KubemarkMachineProviderConfig, error) {
 	var providerSpecRawExtention runtime.RawExtension
 	providerSpec := machine.Spec.ProviderSpec
 	if providerSpec.Value == nil && providerSpec.ValueFrom == nil {
@@ -46,7 +46,7 @@ func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine,
 		if providerSpec.ValueFrom.MachineClass == nil {
 			return nil, fmt.Errorf("unable to find MachineClass on Spec.ProviderSpec.ValueFrom")
 		}
-		machineClass := &clusterv1.MachineClass{}
+		machineClass := &machinev1.MachineClass{}
 		key := types.NamespacedName{
 			Namespace: providerSpec.ValueFrom.MachineClass.Namespace,
 			Name:      providerSpec.ValueFrom.MachineClass.Name,
@@ -58,14 +58,14 @@ func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine,
 	}
 
 	var config providerconfigv1.KubemarkMachineProviderConfig
-	if err := codec.DecodeProviderSpec(&clusterv1.ProviderSpec{Value: &providerSpecRawExtention}, &config); err != nil {
+	if err := codec.DecodeProviderSpec(&machinev1.ProviderSpec{Value: &providerSpecRawExtention}, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil
 }
 
 // isMaster returns true if the machine is part of a cluster's control plane
-func isMaster(machine *clusterv1.Machine) bool {
+func isMaster(machine *machinev1.Machine) bool {
 	if machineType, exists := machine.ObjectMeta.Labels[providerconfigv1.MachineTypeLabel]; exists && machineType == "master" {
 		return true
 	}

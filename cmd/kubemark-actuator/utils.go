@@ -15,8 +15,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	machineactuator "github.com/openshift/cluster-api-provider-kubemark/pkg/actuators/machine"
-	"github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig/v1alpha1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig/v1beta1"
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 type manifestParams struct {
@@ -71,7 +71,7 @@ func createActuator(machine *clusterv1.Machine, kubeconfig string) (*machineactu
 	objList := []runtime.Object{machine}
 	fakeClient := fake.NewFakeClient(objList...)
 
-	codec, err := v1alpha1.NewCodec()
+	codec, err := v1beta1.NewCodec()
 	if err != nil {
 		return nil, err
 	}
