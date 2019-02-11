@@ -36,7 +36,7 @@ spec:
         operator: Exists
       containers:
       - name: controller-manager
-        image: gofed/kubemark-machine-controllers:1e737b9
+        image: gofed/kubemark-machine-controllers:e4baca2
         command:
         - "./manager"
         args:
@@ -50,7 +50,7 @@ spec:
             cpu: 100m
             memory: 30Mi
       - name: machine-controller
-        image: gofed/kubemark-machine-controllers:1e737b9
+        image: gofed/kubemark-machine-controllers:e4baca2
         env:
           - name: NODE_NAME
             valueFrom:

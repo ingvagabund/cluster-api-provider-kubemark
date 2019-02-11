@@ -10,6 +10,17 @@ rules:
   resources:
   - clusters
   - clusters/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - machine.openshift.io
+  resources:
   - machines
   - machines/status
   - machinesets
