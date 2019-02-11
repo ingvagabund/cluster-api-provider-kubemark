@@ -23,8 +23,8 @@ required = [
   version = "v1.15.5"
 
 [[override]]
-  name = "sigs.k8s.io/cluster-api"
-  branch = "master"
+  name = "github.com/openshift/cluster-api"
+  branch = "release-4.0"
 
 [[override]]
   #branch = "master"
