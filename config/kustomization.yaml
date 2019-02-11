@@ -30,3 +30,6 @@ resources:
 - rbac/rbac_role_binding.yaml
 - controllers/configmap.yaml
 - controllers/deployment.yaml
+
+patches:
+- clusterapi-manager-controllers-patch.yaml

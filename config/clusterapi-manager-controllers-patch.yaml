@@ -1,0 +1,12 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clusterapi-manager-controllers
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: nodelink-controller
+        image: registry.svc.ci.openshift.org/openshift/origin-v4.0-2019-02-11-104425@sha256:3397e2a665d7bff3ef96bcba1d8ae1f3da92623a0bb31de8ceb1cf500f9ab5cb # NODELINK_CONTROLLER_IMAGE
