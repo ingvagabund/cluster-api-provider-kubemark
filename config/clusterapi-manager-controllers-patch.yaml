@@ -9,4 +9,4 @@ spec:
     spec:
       containers:
       - name: nodelink-controller
-        image: registry.svc.ci.openshift.org/openshift/origin-v4.0-2019-02-11-104425@sha256:3397e2a665d7bff3ef96bcba1d8ae1f3da92623a0bb31de8ceb1cf500f9ab5cb # NODELINK_CONTROLLER_IMAGE
+        image: registry.svc.ci.openshift.org/openshift/origin-v4.0-2019-02-13-200735@sha256:65a62e5b4d6cd90c238bd580b4c53888f706f3597ac8f626a9dc11bf16853132 # NODELINK_CONTROLLER_IMAGE
