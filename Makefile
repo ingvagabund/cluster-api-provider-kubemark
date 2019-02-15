@@ -71,7 +71,7 @@ bin:
 .PHONY: build
 build: ## build binaries
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/manager -ldflags '-extldflags "-static"' github.com/openshift/cluster-api-provider-kubemark/cmd/manager
-	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/machine-controller-manager -ldflags '-extldflags "-static"' github.com/openshift/cluster-api-provider-kubemark/vendor/sigs.k8s.io/cluster-api/cmd/manager
+	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/machine-controller-manager -ldflags '-extldflags "-static"' github.com/openshift/cluster-api-provider-kubemark/vendor/github.com/openshift/cluster-api/cmd/manager
 
 kubemark-actuator:
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/kubemark-actuator github.com/openshift/cluster-api-provider-kubemark/cmd/kubemark-actuator
@@ -107,6 +107,10 @@ fmt: ## Go fmt your code
 .PHONY: vet
 vet: ## Apply go vet to all go files
 	hack/go-vet.sh ./...
+
+.PHONY: test-e2e
+test-e2e: ## Run e2e tests
+	 go run ./test/e2e/*.go -alsologtostderr $${NAMESPACE:+--namespace=$${NAMESPACE}} $${FOCUS:+--focus=$${FOCUS}}
 
 .PHONY: help
 help:
