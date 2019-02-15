@@ -356,6 +356,7 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 				DeleteLocalData:    true,
 				GracePeriodSeconds: -1,
 				Logger:             info.New(glog.V(0)),
+				Timeout:            10 * time.Second,
 			},
 		); err != nil {
 			// Machine still tries to terminate after drain failure
