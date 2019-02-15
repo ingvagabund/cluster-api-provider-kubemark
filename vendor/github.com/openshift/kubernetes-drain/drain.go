@@ -238,8 +238,8 @@ func (o *DrainOptions) unreplicatedFilter(pod corev1.Pod) (bool, *warning, *fata
 }
 
 type DaemonSetFilterOptions struct {
-	client typedextensionsv1beta1.ExtensionsV1beta1Interface
-	force bool
+	client           typedextensionsv1beta1.ExtensionsV1beta1Interface
+	force            bool
 	ignoreDaemonSets bool
 }
 
@@ -328,8 +328,8 @@ func getPodsForDeletion(client kubernetes.Interface, node *corev1.Node, options 
 	fs := podStatuses{}
 
 	daemonSetOptions := &DaemonSetFilterOptions{
-		client: client.ExtensionsV1beta1(),
-		force: options.Force,
+		client:           client.ExtensionsV1beta1(),
+		force:            options.Force,
 		ignoreDaemonSets: options.IgnoreDaemonsets,
 	}
 
