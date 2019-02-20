@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"context"
@@ -58,7 +59,7 @@ func machineFromMachineset(machineset *machinev1beta1.MachineSet) *machinev1beta
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: machineset.Namespace,
 			Name:      "machine-" + randomUUID[:6],
-			Labels:    nodeDrainLabels,
+			Labels:    machineset.Labels,
 		},
 		Spec: machineset.Spec.Template.Spec,
 	}
@@ -289,6 +290,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 	delete(delObjects, "machine1")
 
 	// We still should be able to list the machine as until rc.replicas-1 are running on the other node
+	var drainedNodeName string
 	if err := wait.PollImmediate(1*time.Second, 10*time.Minute, func() (bool, error) {
 		machine := machinev1beta1.Machine{}
 
@@ -304,8 +306,12 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 			glog.Error("machine %q not linked to a node", machine.Name)
 		}
 
+		drainedNodeName = machine.Status.NodeRef.Name
+
 		pods := v1.PodList{}
-		if err := F.Client.List(context.TODO(), &client.ListOptions{}, &pods); err != nil {
+		listOpt := &client.ListOptions{}
+		listOpt.MatchingLabels(rc.Spec.Selector)
+		if err := F.Client.List(context.TODO(), listOpt, &pods); err != nil {
 			glog.Errorf("error querying api for Pods object: %v, retrying...", err)
 			return false, nil
 		}
@@ -313,12 +319,13 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 		// expecting nodeGroupSize nodes
 		podCounter := 0
 		for _, pod := range pods.Items {
-			if machine.Status.NodeRef == nil {
+			if pod.Spec.NodeName != machine.Status.NodeRef.Name {
 				continue
 			}
-			if pod.Spec.NodeName == machine.Status.NodeRef.Name {
-				podCounter++
+			if !pod.DeletionTimestamp.IsZero() {
+				continue
 			}
+			podCounter++
 		}
 
 		glog.Infof("Have %v pods scheduled to node %q", podCounter, machine.Status.NodeRef.Name)
@@ -352,6 +359,55 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 		}
 
 		glog.Info("Expected result: all pods from the RC up to last one or two got scheduled to a different node while respecting PDB")
+		return true, nil
+	}); err != nil {
+		return err
+	}
+
+	// Validate the machine is deleted
+	if err := wait.PollImmediate(5*time.Second, 1*time.Minute, func() (bool, error) {
+		machine := machinev1beta1.Machine{}
+
+		key := types.NamespacedName{
+			Namespace: machine1.Namespace,
+			Name:      machine1.Name,
+		}
+		err := F.Client.Get(context.TODO(), key, &machine)
+		if err == nil {
+			glog.Errorf("Machine %q not yet deleted", machine1.Name)
+			return false, nil
+		}
+
+		if !strings.Contains(err.Error(), "not found") {
+			glog.Errorf("error querying api machine %q object: %v, retrying...", machine1.Name, err)
+			return false, nil
+		}
+
+		glog.Infof("Machine %q successfully deleted", machine1.Name)
+		return true, nil
+	}); err != nil {
+		return err
+	}
+
+	// Validate underlying node is removed as well
+	if err := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {
+		node := v1.Node{}
+
+		key := types.NamespacedName{
+			Name: drainedNodeName,
+		}
+		err := F.Client.Get(context.TODO(), key, &node)
+		if err == nil {
+			glog.Errorf("Node %q not yet deleted", drainedNodeName)
+			return false, nil
+		}
+
+		if !strings.Contains(err.Error(), "not found") {
+			glog.Errorf("error querying api node %q object: %v, retrying...", drainedNodeName, err)
+			return false, nil
+		}
+
+		glog.Infof("Node %q successfully deleted", drainedNodeName)
 		return true, nil
 	}); err != nil {
 		return err
