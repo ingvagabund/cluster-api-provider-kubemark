@@ -22,9 +22,8 @@ resources:
 - crds/machineset.openshift.io.crd.yaml
 - crds/machinedeployment.openshift.io.crd.yaml
 - crds/cluster.crd.yaml
-- rbac/service_account.yaml
 - rbac/rbac_role.yaml
 - rbac/rbac_role_binding.yaml
 - rbac/kubemark_rbac.yaml
-- controllers/configmap.yaml
+- controllers/kubemark.yaml
 - controllers/deployment.yaml

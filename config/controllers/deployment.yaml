@@ -75,17 +75,3 @@ spec:
           limits:
             cpu: 100m
             memory: 30Mi
-      - name: unready-nodes-gb
-        image: gofed/kubemark-machine-controllers:v1.0
-        command:
-          - /bin/entrypoint.sh
-        volumeMounts:
-        - name: deleteunreadynodes
-          mountPath: /bin/entrypoint.sh
-          readOnly: true
-          subPath: entrypoint.sh
-      volumes:
-      - name: deleteunreadynodes
-        configMap:
-          defaultMode: 0700
-          name: deleteunreadynodes
