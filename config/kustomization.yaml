@@ -25,5 +25,6 @@ resources:
 - rbac/service_account.yaml
 - rbac/rbac_role.yaml
 - rbac/rbac_role_binding.yaml
+- rbac/kubemark_rbac.yaml
 - controllers/configmap.yaml
 - controllers/deployment.yaml
