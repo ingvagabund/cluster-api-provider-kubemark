@@ -62,7 +62,7 @@ spec:
           - --logtostderr=true
           - --v=3
       - name: nodelink-controller
-        image: quay.io/coreos/machine-api-operator:origin-v4.0-2019-01-31-041134
+        image: docker.io/openshift/origin-machine-api-operator:v4.0.0
         command:
           - /nodelink-controller
         args:
