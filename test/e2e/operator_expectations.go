@@ -36,7 +36,7 @@ func verifyControllersAreReady() error {
 
 	err := wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
 		if err := F.Client.Get(context.TODO(), key, d); err != nil {
-			glog.Errorf("error querying api for Deployment object: %v, retrying...", err)
+			glog.Errorf("Error querying api for Deployment object: %v, retrying...", err)
 			return false, nil
 		}
 		if d.Status.ReadyReplicas < 1 {
@@ -169,7 +169,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 		for key := range delObjects {
 			glog.Infof("Deleting object %q", key)
 			if err := F.Client.Delete(context.TODO(), delObjects[key]); err != nil {
-				glog.Errorf("unable to delete object %q: %v", key, err)
+				glog.Errorf("Unable to delete object %q: %v", key, err)
 			}
 		}
 	}()
@@ -178,7 +178,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 	machinesets := machinev1beta1.MachineSetList{}
 	if err := wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
 		if err := F.Client.List(context.TODO(), &client.ListOptions{}, &machinesets); err != nil {
-			glog.Errorf("error querying api for machineset object: %v, retrying...", err)
+			glog.Errorf("Error querying api for machineset object: %v, retrying...", err)
 			return false, nil
 		}
 		if len(machinesets.Items) < 1 {
@@ -215,7 +215,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 		listOpt := &client.ListOptions{}
 		listOpt.MatchingLabels(nodeDrainLabels)
 		if err := F.Client.List(context.TODO(), listOpt, &nodes); err != nil {
-			glog.Errorf("error querying api for Node object: %v, retrying...", err)
+			glog.Errorf("Error querying api for Node object: %v, retrying...", err)
 			return false, nil
 		}
 		// expecting nodeGroupSize nodes
@@ -265,7 +265,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 			Name:      rc.Name,
 		}
 		if err := F.Client.Get(context.TODO(), key, &rcObj); err != nil {
-			glog.Errorf("error querying api RC %q object: %v, retrying...", rc.Name, err)
+			glog.Errorf("Error querying api RC %q object: %v, retrying...", rc.Name, err)
 			return false, nil
 		}
 		if rcObj.Status.ReadyReplicas == 0 {
@@ -281,7 +281,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 		return err
 	}
 
-	// All pods are distrubution evenly among all nodes so it's fine to drain
+	// All pods are distributed evenly among all nodes so it's fine to drain
 	// random node and observe reconciliation of pods on the other one.
 	if err := F.Client.Delete(context.TODO(), machine1); err != nil {
 		return fmt.Errorf("unable to delete machine %q: %v", machine1.Name, err)
@@ -299,20 +299,33 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 			Name:      machine1.Name,
 		}
 		if err := F.Client.Get(context.TODO(), key, &machine); err != nil {
-			glog.Errorf("error querying api machine %q object: %v, retrying...", machine1.Name, err)
+			glog.Errorf("Error querying api machine %q object: %v, retrying...", machine1.Name, err)
 			return false, nil
 		}
 		if machine.Status.NodeRef == nil || machine.Status.NodeRef.Kind != "Node" {
-			glog.Error("machine %q not linked to a node", machine.Name)
+			glog.Error("Machine %q not linked to a node", machine.Name)
 		}
 
 		drainedNodeName = machine.Status.NodeRef.Name
+		node := v1.Node{}
+
+		if err := F.Client.Get(context.TODO(), types.NamespacedName{Name: drainedNodeName}, &node); err != nil {
+			glog.Errorf("Error querying api node %q object: %v, retrying...", drainedNodeName, err)
+			return false, nil
+		}
+
+		if !node.Spec.Unschedulable {
+			glog.Errorf("Node %q is expected to be marked as unschedulable, it is not", node.Name)
+			return false, nil
+		}
+
+		glog.Infof("Node %q is mark unschedulable as expected", node.Name)
 
 		pods := v1.PodList{}
 		listOpt := &client.ListOptions{}
 		listOpt.MatchingLabels(rc.Spec.Selector)
 		if err := F.Client.List(context.TODO(), listOpt, &pods); err != nil {
-			glog.Errorf("error querying api for Pods object: %v, retrying...", err)
+			glog.Errorf("Error querying api for Pods object: %v, retrying...", err)
 			return false, nil
 		}
 
@@ -337,7 +350,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 			Name:      rc.Name,
 		}
 		if err := F.Client.Get(context.TODO(), key, &rcObj); err != nil {
-			glog.Errorf("error querying api RC %q object: %v, retrying...", rc.Name, err)
+			glog.Errorf("Error querying api RC %q object: %v, retrying...", rc.Name, err)
 			return false, nil
 		}
 
@@ -379,7 +392,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 		}
 
 		if !strings.Contains(err.Error(), "not found") {
-			glog.Errorf("error querying api machine %q object: %v, retrying...", machine1.Name, err)
+			glog.Errorf("Error querying api machine %q object: %v, retrying...", machine1.Name, err)
 			return false, nil
 		}
 
@@ -390,7 +403,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 	}
 
 	// Validate underlying node is removed as well
-	if err := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {
+	if err := wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
 		node := v1.Node{}
 
 		key := types.NamespacedName{
@@ -403,7 +416,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 		}
 
 		if !strings.Contains(err.Error(), "not found") {
-			glog.Errorf("error querying api node %q object: %v, retrying...", drainedNodeName, err)
+			glog.Errorf("Error querying api node %q object: %v, retrying...", drainedNodeName, err)
 			return false, nil
 		}
 
