@@ -18,7 +18,6 @@ package machine
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -325,13 +324,7 @@ func (gl *glogLogger) Logf(format string, v ...interface{}) {
 // DeleteMachine deletes an AWS instance
 func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	// Drain node before deleting
-	if _, exists := machine.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists {
-		if machine.Status.NodeRef == nil {
-			// Draining a node of a machine without a node needs to be explicitely inspected
-			err := errors.New("draining node without a node reference during machine deletion operation is forbidden")
-			glog.Error(err)
-			return err
-		}
+	if _, exists := machine.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists && machine.Status.NodeRef != nil {
 		glog.Infof("Draining node before delete")
 		if a.config == nil {
 			err := fmt.Errorf("missing client config, unable to build kube client")
