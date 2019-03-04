@@ -1,0 +1,16 @@
+---
+apiVersion: machine.openshift.io/v1beta1
+kind: Machine
+metadata:
+  name: minikube-static-machine
+  namespace: default
+  annotations:
+    machine.openshift.io/static-machine: minikube
+spec:
+  providerSpec:
+    value:
+      apiVersion: kubemarkproviderconfig.k8s.io/v1alpha1
+      kind: KubemarkMachineProviderConfig
+  versions:
+    kubelet: 1.10.1
+    controlPlane: 1.10.1

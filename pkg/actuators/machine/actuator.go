@@ -59,6 +59,8 @@ const (
 	machineNamespaceLabel = "machine.k8s.io/machine-namespace"
 	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
 	ExcludeNodeDrainingAnnotation = "machine.openshift.io/exclude-node-draining"
+	// StaticMachineAnnotation annotation to back up a node but without an instance reconciliation
+	StaticMachineAnnotation = "machine.openshift.io/static-machine"
 )
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
@@ -179,6 +181,50 @@ func (a *Actuator) updateMachineProviderConditions(machine *machinev1.Machine, c
 
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
 func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) (*corev1.Pod, error) {
+	kubeClient, err := kubernetes.NewForConfig(a.config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to build kube client: %v", err)
+	}
+
+	if nodeName, isStaticMachine := machine.Annotations[StaticMachineAnnotation]; isStaticMachine {
+		// Do not create anything, just fetch node status and return pod populated with data
+		// required by reconciliation logic to work properly
+		node, err := kubeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("unable to get node %q: %v", nodeName, err)
+		}
+
+		var nodeIP string
+		for _, address := range node.Status.Addresses {
+			if address.Type == corev1.NodeInternalIP {
+				nodeIP = address.Address
+				break
+			}
+		}
+
+		if nodeIP == "" {
+			return nil, fmt.Errorf("unable to get node %q internal IP, missing node address", nodeName)
+		}
+
+		glog.Infof("Creating static machines %q", machine.Name)
+
+		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %v", machine.Name)
+
+		return &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: kubemarkNamespace,
+				Name:      uuid.NewV4().String(),
+				Labels: map[string]string{
+					machineNameLabel:      machine.Name,
+					machineNamespaceLabel: machine.Namespace,
+				},
+			},
+			Status: corev1.PodStatus{
+				PodIP: nodeIP,
+			},
+		}, nil
+	}
+
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		return nil, a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
@@ -286,11 +332,6 @@ func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.
 		},
 	}
 
-	kubeClient, err := kubernetes.NewForConfig(a.config)
-	if err != nil {
-		return nil, fmt.Errorf("unable to build kube client: %v", err)
-	}
-
 	if _, err := kubeClient.CoreV1().Pods(hollowNode.Namespace).Create(hollowNode); err != nil {
 		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error launching machine pod: %v", err), createEventAction)
 	}
@@ -321,6 +362,11 @@ func (gl *glogLogger) Logf(format string, v ...interface{}) {
 
 // DeleteMachine deletes an AWS instance
 func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) error {
+	if _, isStaticMachine := machine.Annotations[StaticMachineAnnotation]; isStaticMachine {
+		glog.Infof("Deleting static machines %q", machine.Name)
+		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Deleted machine %v", machine.Name)
+		return nil
+	}
 	// Drain node before deleting
 	if _, exists := machine.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists && machine.Status.NodeRef != nil {
 		glog.Infof("Draining node before delete")
@@ -395,6 +441,11 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("updating machine")
 
+	if _, isStaticMachine := machine.Annotations[StaticMachineAnnotation]; isStaticMachine {
+		glog.Infof("Static machines are not updated, skipping machine %q", machine.Name)
+		return nil
+	}
+
 	machinePod, err := a.getMachinePod(machine)
 	if err != nil {
 		glog.Error(err)
@@ -424,6 +475,10 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 // running state, with a matching name tag, to determine a match.
 func (a *Actuator) Exists(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) (bool, error) {
 	glog.Info("checking if machine exists")
+
+	if _, isStaticMachine := machine.Annotations[StaticMachineAnnotation]; isStaticMachine {
+		return true, nil
+	}
 
 	machinePod, err := a.getMachinePod(machine)
 	if err != nil {
