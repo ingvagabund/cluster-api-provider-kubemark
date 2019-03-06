@@ -179,6 +179,41 @@ func (a *Actuator) updateMachineProviderConditions(machine *machinev1.Machine, c
 	return nil
 }
 
+func (a *Actuator) staticMachinePod(machine *machinev1.Machine) (*corev1.Pod, error) {
+	kubeClient, err := kubernetes.NewForConfig(a.config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to build kube client: %v", err)
+	}
+
+	nodeName := machine.Annotations[StaticMachineAnnotation]
+	node, err := kubeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("unable to get node %q: %v", nodeName, err)
+	}
+
+	var nodeIP string
+	for _, address := range node.Status.Addresses {
+		if address.Type == corev1.NodeInternalIP {
+			nodeIP = address.Address
+			break
+		}
+	}
+
+	if nodeIP == "" {
+		return nil, fmt.Errorf("unable to get node %q internal IP, missing node address", nodeName)
+	}
+
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "static-machine-for-node",
+			Name:      machine.Name,
+		},
+		Status: corev1.PodStatus{
+			PodIP: nodeIP,
+		},
+	}, nil
+}
+
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
 func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) (*corev1.Pod, error) {
 	kubeClient, err := kubernetes.NewForConfig(a.config)
@@ -186,43 +221,20 @@ func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.
 		return nil, fmt.Errorf("unable to build kube client: %v", err)
 	}
 
-	if nodeName, isStaticMachine := machine.Annotations[StaticMachineAnnotation]; isStaticMachine {
+	if _, isStaticMachine := machine.Annotations[StaticMachineAnnotation]; isStaticMachine {
 		// Do not create anything, just fetch node status and return pod populated with data
 		// required by reconciliation logic to work properly
-		node, err := kubeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+		machinePod, err := a.staticMachinePod(machine)
 		if err != nil {
-			return nil, fmt.Errorf("unable to get node %q: %v", nodeName, err)
-		}
-
-		var nodeIP string
-		for _, address := range node.Status.Addresses {
-			if address.Type == corev1.NodeInternalIP {
-				nodeIP = address.Address
-				break
-			}
-		}
-
-		if nodeIP == "" {
-			return nil, fmt.Errorf("unable to get node %q internal IP, missing node address", nodeName)
+			glog.Error(err)
+			return nil, err
 		}
 
 		glog.Infof("Creating static machines %q", machine.Name)
 
 		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %v", machine.Name)
 
-		return &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: kubemarkNamespace,
-				Name:      uuid.NewV4().String(),
-				Labels: map[string]string{
-					machineNameLabel:      machine.Name,
-					machineNamespaceLabel: machine.Namespace,
-				},
-			},
-			Status: corev1.PodStatus{
-				PodIP: nodeIP,
-			},
-		}, nil
+		return machinePod, nil
 	}
 
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
@@ -443,7 +455,14 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 
 	if _, isStaticMachine := machine.Annotations[StaticMachineAnnotation]; isStaticMachine {
 		glog.Infof("Static machines are not updated, skipping machine %q", machine.Name)
-		return nil
+
+		machinePod, err := a.staticMachinePod(machine)
+		if err != nil {
+			glog.Error(err)
+			return err
+		}
+
+		return a.updateStatus(machine, machinePod)
 	}
 
 	machinePod, err := a.getMachinePod(machine)
