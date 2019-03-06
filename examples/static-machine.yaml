@@ -3,7 +3,7 @@ apiVersion: machine.openshift.io/v1beta1
 kind: Machine
 metadata:
   name: minikube-static-machine
-  namespace: default
+  namespace: kube-system
   annotations:
     machine.openshift.io/static-machine: minikube
 spec:
