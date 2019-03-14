@@ -22,7 +22,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/go-log/log/info"
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -40,8 +39,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	kubedrain "github.com/openshift/kubernetes-drain"
-
 	"k8s.io/apimachinery/pkg/labels"
 )
 
@@ -57,8 +54,6 @@ const (
 	kubemarkNamespace     = "kubemark-actuator"
 	machineNameLabel      = "machine.k8s.io/machine-name"
 	machineNamespaceLabel = "machine.k8s.io/machine-namespace"
-	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
-	ExcludeNodeDrainingAnnotation = "machine.openshift.io/exclude-node-draining"
 	// StaticMachineAnnotation annotation to back up a node but without an instance reconciliation
 	StaticMachineAnnotation = "machine.openshift.io/static-machine"
 )
@@ -378,42 +373,6 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 		glog.Infof("Deleting static machines %q", machine.Name)
 		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Deleted machine %v", machine.Name)
 		return nil
-	}
-	// Drain node before deleting
-	if _, exists := machine.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists && machine.Status.NodeRef != nil {
-		glog.Infof("Draining node before delete")
-		if a.config == nil {
-			err := fmt.Errorf("missing client config, unable to build kube client")
-			glog.Error(err)
-			return err
-		}
-		kubeClient, err := kubernetes.NewForConfig(a.config)
-		if err != nil {
-			return fmt.Errorf("unable to build kube client: %v", err)
-		}
-		node, err := kubeClient.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("unable to get node %q: %v", machine.Status.NodeRef.Name, err)
-		}
-
-		if err := kubedrain.Drain(
-			kubeClient,
-			[]*corev1.Node{node},
-			&kubedrain.DrainOptions{
-				Force:              true,
-				IgnoreDaemonsets:   true,
-				DeleteLocalData:    true,
-				GracePeriodSeconds: -1,
-				Logger:             info.New(glog.V(0)),
-				Timeout:            10 * time.Second,
-			},
-		); err != nil {
-			// Machine still tries to terminate after drain failure
-			glog.Warningf("drain failed for machine %q: %v", machine.Name, err)
-			return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
-		}
-		glog.Infof("drain successful for machine %q", machine.Name)
-		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Node %q drained", node.Name)
 	}
 
 	machinePod, err := a.getMachinePod(machine)
