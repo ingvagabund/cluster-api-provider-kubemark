@@ -68,19 +68,14 @@ func TestEncodeAndDecodeProviderSpec(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	publicIP := true
-	amiID := "id"
-	kubemarkCredentialsSecretName := "test"
-	clusterID := "test"
-
 	providerConfig := &KubemarkMachineProviderConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubemarkMachineProviderConfig",
 			APIVersion: "kubemarkproviderconfig.k8s.io/v1alpha1",
 		},
 		TurnUnhealthyAfter:        false,
-		UnhealthyDuration:         5 * time.Second,
-		HealthyDuration:           5 * time.Second,
+		UnhealthyDuration:         metav1.Duration{UnhealthyDuration: 5 * time.Second},
+		HealthyDuration:           metav1.Duration{HealthyDuration: 5 * time.Second},
 		TurnUnhealthyPeriodically: true,
 	}
 
