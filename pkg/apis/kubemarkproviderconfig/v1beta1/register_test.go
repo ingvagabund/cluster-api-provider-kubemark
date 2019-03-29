@@ -74,8 +74,8 @@ func TestEncodeAndDecodeProviderSpec(t *testing.T) {
 			APIVersion: "kubemarkproviderconfig.k8s.io/v1alpha1",
 		},
 		TurnUnhealthyAfter:        false,
-		UnhealthyDuration:         metav1.Duration{UnhealthyDuration: 5 * time.Second},
-		HealthyDuration:           metav1.Duration{HealthyDuration: 5 * time.Second},
+		UnhealthyDuration:         metav1.Duration{Duration: 5 * time.Second},
+		HealthyDuration:           metav1.Duration{Duration: 5 * time.Second},
 		TurnUnhealthyPeriodically: true,
 	}
 
