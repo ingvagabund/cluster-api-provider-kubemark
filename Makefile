@@ -112,6 +112,15 @@ vet: ## Apply go vet to all go files
 test-e2e: ## Run e2e tests
 	 go run ./test/e2e/*.go -alsologtostderr $${NAMESPACE:+--namespace=$${NAMESPACE}} $${FOCUS:+--focus=$${FOCUS}}
 
+.PHONY: k8s-e2e
+k8s-e2e: ## Run k8s specific e2e test
+	go test -timeout 30m \
+		-v ./vendor/github.com/openshift/cluster-api-actuator-pkg/pkg/e2e \
+		-kubeconfig $${KUBECONFIG:-~/.kube/config} \
+		-machine-api-namespace $${NAMESPACE:-kube-system} \
+		-ginkgo.v \
+		-args -v 5 -logtostderr true
+
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z/0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

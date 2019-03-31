@@ -13,10 +13,10 @@ required = [
     "sigs.k8s.io/controller-runtime/pkg/source",
     "sigs.k8s.io/testing_frameworks/integration", # for integration testing
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/autoscaler",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/infra",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/operators",
     ]
-
-[prune]
-  go-tests = true
 
 [[constraint]]
   name = "github.com/aws/aws-sdk-go"
@@ -25,6 +25,10 @@ required = [
 [[constraint]]
   name = "github.com/openshift/cluster-api"
   branch = "openshift-4.0-cluster-api-0.0.0-alpha.4"
+
+[[override]]
+  name = "github.com/openshift/cluster-api-actuator-pkg"
+  branch = "master"
 
 [[override]]
   name = "k8s.io/kube-aggregator"
@@ -63,3 +67,10 @@ required = [
 name = "gopkg.in/fsnotify.v1"
 source = "https://github.com/fsnotify/fsnotify.git"
 version="v1.4.7"
+
+[prune]
+  go-tests = true
+
+  [[prune.project]]
+    name = "github.com/openshift/cluster-api-actuator-pkg"
+    go-tests = false

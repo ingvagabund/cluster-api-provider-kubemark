@@ -10,6 +10,22 @@
   version = "v0.31.0"
 
 [[projects]]
+  digest = "1:bd3632deea7c224314b504dc51fbd244a59163e89c0cb730877d51bb13f5f74a"
+  name = "github.com/PuerkitoBio/purell"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "44968752391892e1b0d0b821ee79e9a85fa13049"
+  version = "v1.1.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c739832d67eb1e9cc478a19cc1a1ccd78df0397bf8a32978b759152e205f644b"
+  name = "github.com/PuerkitoBio/urlesc"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "de5bf2ad457846296e2031421a34e2568e304e35"
+
+[[projects]]
   digest = "1:464aef731a5f82ded547c62e249a2e9ec59fbbc9ddab53cda7b9857852630a61"
   name = "github.com/appscode/jsonpatch"
   packages = ["."]
@@ -86,6 +102,38 @@
   pruneopts = "T"
   revision = "7536572e8d55209135cd5e7ccf7fce43dca217ab"
   version = "v0.1.0"
+
+[[projects]]
+  digest = "1:701ec53dfa0182bf25e5c09e664906f11d697e779b59461a2607dbd4dc75a4f9"
+  name = "github.com/go-openapi/jsonpointer"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "ef5f0afec364d3b9396b7b77b43dbe26bf1f8004"
+  version = "v0.19.0"
+
+[[projects]]
+  digest = "1:3f17ebd557845adeb347c9e398394e96ebc18e0ec94cc04972be87851a4679e0"
+  name = "github.com/go-openapi/jsonreference"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "8483a886a90412cd6858df4ea3483dce9c8e35a3"
+  version = "v0.19.0"
+
+[[projects]]
+  digest = "1:40910b9a3f0c63bcbb9da11fe471a95899dc0e139284bd892ac18819a37bbfc5"
+  name = "github.com/go-openapi/spec"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "53d776530bf78a11b03a7b52dd8a083086b045e5"
+  version = "v0.19.0"
+
+[[projects]]
+  digest = "1:8d6ff454d55699bfcfdc2ef77547defda00f7531e4b6c4483e5606b749255168"
+  name = "github.com/go-openapi/swag"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "b3e2804c8535ee0d1b89320afd98474d5b8e9e3b"
+  version = "v0.19.0"
 
 [[projects]]
   digest = "1:883149c2b3962c5e30d79d7d717c341260cb579baef61202723745e8e23954e8"
@@ -241,6 +289,18 @@
   version = "v1.1.5"
 
 [[projects]]
+  branch = "master"
+  digest = "1:fdc36971ac665ed6015c550eac0e21b1d7558d91e797fa751b4b7fc84bcb7c6e"
+  name = "github.com/mailru/easyjson"
+  packages = [
+    "buffer",
+    "jlexer",
+    "jwriter",
+  ]
+  pruneopts = "T"
+  revision = "1de009706dbeb9d05f18586f0735fcdb7c524481"
+
+[[projects]]
   digest = "1:3804a3a02964db8e6db3e5e7960ac1c1a9b12835642dd4f4ac4e56c749ec73eb"
   name = "github.com/markbates/inflect"
   packages = ["."]
@@ -323,6 +383,14 @@
   version = "v1.4.2"
 
 [[projects]]
+  branch = "master"
+  digest = "1:6b4f3c0d6651f317af25c8a64147d0b2135d35071888411e2d6c19e3a3745330"
+  name = "github.com/openshift/api"
+  packages = ["config/v1"]
+  pruneopts = "T"
+  revision = "e8532c51d46fdc99060e3357da9282a3c588ee94"
+
+[[projects]]
   branch = "openshift-4.0-cluster-api-0.0.0-alpha.4"
   digest = "1:3cf9fcd481210b6c5d278afdfe2a8b78e7c29a08d439a8bab0492cf93d6ddd28"
   name = "github.com/openshift/cluster-api"
@@ -332,8 +400,14 @@
     "pkg/apis/cluster/v1alpha1",
     "pkg/apis/machine/common",
     "pkg/apis/machine/v1beta1",
+    "pkg/client/clientset_generated/clientset",
+    "pkg/client/clientset_generated/clientset/scheme",
+    "pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
+    "pkg/client/clientset_generated/clientset/typed/machine/v1beta1",
     "pkg/controller/error",
     "pkg/controller/machine",
+    "pkg/controller/node",
+    "pkg/controller/noderefutil",
     "pkg/errors",
     "pkg/util",
   ]
@@ -342,11 +416,56 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:184c82c897af338284a91952e59df859877e490390bcff42cd951ffb49e7c551"
+  name = "github.com/openshift/cluster-api-actuator-pkg"
+  packages = [
+    "pkg/e2e/autoscaler",
+    "pkg/e2e/framework",
+    "pkg/e2e/infra",
+    "pkg/e2e/operators",
+    "pkg/manifests",
+    "pkg/types",
+  ]
+  pruneopts = ""
+  revision = "3edd66ef5f2bc25f1b7970d234923b4cfa4e490f"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c0d39ea0ee9b8f1e4a44fc1d03471b0e64dce7b9c64c7feecf414b66ce67e1e6"
+  name = "github.com/openshift/cluster-autoscaler-operator"
+  packages = ["pkg/apis/autoscaling/v1alpha1"]
+  pruneopts = "T"
+  revision = "0283da408abb20834c1149fbfee5b69a5b4b7bb2"
+
+[[projects]]
+  branch = "master"
   digest = "1:f7646c654e93258958dba300641f8f674d5a9ed015c11119793ba1156e2acbe9"
   name = "github.com/openshift/kubernetes-drain"
   packages = ["."]
   pruneopts = "T"
   revision = "c2e51be1758efa30d71a4d30dc4e2db86b70a4df"
+
+[[projects]]
+  branch = "master"
+  digest = "1:3b49a392f605d1771dcb3e9937505f620f701a9a154db35fef015fe7988b5a3a"
+  name = "github.com/openshift/library-go"
+  packages = ["pkg/config/clusteroperator/v1helpers"]
+  pruneopts = "T"
+  revision = "ce0e892919bd98ca70214f34ba4d59428f76bc3c"
+
+[[projects]]
+  digest = "1:b8fec16794e7d426d17af8c201367278369aee7ea1de19d6c1b701787e03df79"
+  name = "github.com/openshift/machine-api-operator"
+  packages = [
+    "pkg/apis/healthchecking",
+    "pkg/apis/healthchecking/v1alpha1",
+    "pkg/generated/clientset/versioned",
+    "pkg/generated/clientset/versioned/scheme",
+    "pkg/generated/clientset/versioned/typed/healthchecking/v1alpha1",
+    "pkg/util/conditions",
+  ]
+  pruneopts = "T"
+  revision = "9650e16c98802a4b57b7551201b0973fcae2f738"
 
 [[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
@@ -496,7 +615,16 @@
   branch = "master"
   digest = "1:482ae811efe307bd9d00f66de80385fba51325054f8ff573e894185e72441f08"
   name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
+  packages = [
+    "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "internal/chacha20",
+    "internal/subtle",
+    "poly1305",
+    "ssh",
+    "ssh/terminal",
+  ]
   pruneopts = "T"
   revision = "4d3f4d9ffa16a13f451c3b2999e9c49e9750bf06"
 
@@ -573,6 +701,7 @@
     "unicode/cldr",
     "unicode/norm",
     "unicode/rangetable",
+    "width",
   ]
   pruneopts = "T"
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
@@ -699,6 +828,9 @@
   packages = [
     "pkg/apis/apiextensions",
     "pkg/apis/apiextensions/v1beta1",
+    "pkg/client/clientset/clientset",
+    "pkg/client/clientset/clientset/scheme",
+    "pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
   ]
   pruneopts = "T"
   revision = "0fe22c71c47604641d9aa352c785b7912c200562"
@@ -741,6 +873,7 @@
     "pkg/util/mergepatch",
     "pkg/util/naming",
     "pkg/util/net",
+    "pkg/util/rand",
     "pkg/util/runtime",
     "pkg/util/sets",
     "pkg/util/strategicpatch",
@@ -807,6 +940,14 @@
     "rest",
     "rest/watch",
     "restmapper",
+    "scale",
+    "scale/scheme",
+    "scale/scheme/appsint",
+    "scale/scheme/appsv1beta1",
+    "scale/scheme/appsv1beta2",
+    "scale/scheme/autoscalingv1",
+    "scale/scheme/extensionsint",
+    "scale/scheme/extensionsv1beta1",
     "testing",
     "third_party/forked/golang/template",
     "tools/auth",
@@ -876,9 +1017,20 @@
   branch = "master"
   digest = "1:152cd19bedf58a86d6b8b9ca42a428e4f16a9415f81e248a800b6a46c77dc486"
   name = "k8s.io/kube-openapi"
-  packages = ["pkg/util/proto"]
+  packages = [
+    "pkg/common",
+    "pkg/util/proto",
+  ]
   pruneopts = "T"
   revision = "72693cb1fadd73ae2742f6fe29af77d1aecdd8cd"
+
+[[projects]]
+  branch = "master"
+  digest = "1:50d36d11cbcdc86bca9c3eede8bf7bee9947e2f350b3013a28282edf8d6e8b58"
+  name = "k8s.io/utils"
+  packages = ["pointer"]
+  pruneopts = "T"
+  revision = "21c4ce38f2a793ec01e925ddc31216500183b773"
 
 [[projects]]
   digest = "1:5aa50779f75cc439edd3455a6dee7cf179b52f8dde764a47cc929693485d1afb"
@@ -962,6 +1114,9 @@
     "github.com/golang/glog",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/autoscaler",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/infra",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/operators",
     "github.com/openshift/cluster-api/pkg/apis",
     "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1",
     "github.com/openshift/cluster-api/pkg/controller/error",
