@@ -13,6 +13,7 @@ spec:
       unhealthyDuration: 5s
       healthyDuration: 5s
       turnUnhealthyPeriodically: true
+      image: docker.io/gofed/kubemark:v1.11.3-6
   versions:
     kubelet: 1.10.1
     controlPlane: 1.10.1
