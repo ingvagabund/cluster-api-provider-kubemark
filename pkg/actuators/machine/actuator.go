@@ -115,6 +115,9 @@ func (a *Actuator) Create(context context.Context, cluster *machinev1.Cluster, m
 		}
 		return err
 	}
+	if err := a.updateProviderID(machine, instance); err != nil {
+		return err
+	}
 	return a.updateStatus(machine, instance)
 }
 
@@ -425,6 +428,10 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 			return err
 		}
 
+		if err := a.updateProviderID(machine, machinePod); err != nil {
+			return err
+		}
+
 		return a.updateStatus(machine, machinePod)
 	}
 
@@ -448,6 +455,10 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 	}
 
 	glog.Infof("found machine pod %v for machine", machinePod.Name)
+
+	if err := a.updateProviderID(machine, machinePod); err != nil {
+		return err
+	}
 
 	// We do not support making changes to pre-existing instances, just update status.
 	return a.updateStatus(machine, machinePod)
@@ -503,6 +514,23 @@ func (a *Actuator) getMachinePod(machine *machinev1.Machine) (*corev1.Pod, error
 	})
 
 	return &pods[0], nil
+}
+
+func (a *Actuator) updateProviderID(machine *machinev1.Machine, instance *corev1.Pod) error {
+	// update ProviderID if changed
+	providerID := fmt.Sprintf("kubemark://%v", instance.Name)
+	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID != providerID {
+		glog.Info("updating providerID")
+		machineCopy := machine.DeepCopy()
+		machineCopy.Spec.ProviderID = &providerID
+		// TODO(jchaloup): use Patch instead
+		if err := a.client.Update(context.Background(), machineCopy); err != nil {
+			glog.Errorf("error updating machine providerID: %v", err)
+			return err
+		}
+		machine.Spec.ProviderID = &providerID
+	}
+	return nil
 }
 
 // updateStatus calculates the new machine status, checks if anything has changed, and updates if so.
