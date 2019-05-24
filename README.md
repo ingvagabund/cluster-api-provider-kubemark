@@ -76,6 +76,7 @@ Currently the kubemark actuator allows to configure the following test scenarios
   unhealthyDuration: 5s
   healthyDuration: 40s
   turnUnhealthyPeriodically: true
+  image: gofed/kubemark:v1.11.3-6
   ```
 
 - have a node report `Unready` status (e.g. 40s after kubelet startup) indefinitely:
@@ -84,6 +85,7 @@ Currently the kubemark actuator allows to configure the following test scenarios
   kind: KubemarkMachineProviderConfig
   unhealthyDuration: 40s
   turnUnhealthyAfter: true
+  image: gofed/kubemark:v1.11.3-6
   ```
 
 ## Kubemark
@@ -107,3 +109,11 @@ The list of PRs that allow kubemark to force kubelet to have node go Unready and
 1. `cd cluster/images/kubemark/`
 1. Build docker image: `make build REGISTRY=... IMAGE_TAG=...`
 1. Push the docker image to registry: `docker push $REGISTRY/`
+
+**Available kubemark images**
+
+* `docker.io/gofed/kubemark:v1.14.3-beta.0-1`
+* `docker.io/gofed/kubemark:v1.13.7-beta.0-1`
+* `docker.io/gofed/kubemark:v1.11.3-6`
+
+Set through `image` of  `KubemarkMachineProviderConfig`.
