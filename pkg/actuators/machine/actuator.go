@@ -237,6 +237,10 @@ func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.
 		return nil, a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
 	}
 
+	if machineProviderConfig.Image == "" {
+		return nil, a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("KubemarkMachineProviderConfig.Image is missing"), createEventAction)
+	}
+
 	// We explicitly do NOT want to remove stopped masters.
 	if !isMaster(machine) {
 		// TODO(jchaloup): remove broken pods (whatever that means)
@@ -286,7 +290,7 @@ func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.
 			Containers: []corev1.Container{
 				{
 					Name:  "hollow-kubelet",
-					Image: "docker.io/gofed/kubemark:v1.11.3-6",
+					Image: machineProviderConfig.Image,
 					Ports: []corev1.ContainerPort{
 						{ContainerPort: 4194},
 						{ContainerPort: 10250},
@@ -315,7 +319,7 @@ func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.
 				},
 				{
 					Name:  "hollow-proxy",
-					Image: "docker.io/gofed/kubemark:v1.11.3-6",
+					Image: machineProviderConfig.Image,
 					Env: []corev1.EnvVar{
 						{
 							Name: "NODE_NAME",

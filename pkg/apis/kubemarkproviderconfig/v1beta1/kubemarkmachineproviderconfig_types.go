@@ -103,6 +103,9 @@ type KubemarkMachineProviderConfig struct {
 	// TurnUnhealthyPeriodically configures kubemark node to go unready and ready
 	// periodically indefinitely
 	TurnUnhealthyPeriodically bool `json:"turnUnhealthyPeriodically"`
+
+	// Kubemark image with hollow kubelet to run
+	Image string `json:"image"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
