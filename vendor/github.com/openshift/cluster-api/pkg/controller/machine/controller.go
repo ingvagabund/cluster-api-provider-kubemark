@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/go-log/log/info"
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	controllerError "github.com/openshift/cluster-api/pkg/controller/error"
 	"github.com/openshift/cluster-api/pkg/util"
@@ -60,7 +61,7 @@ func AddWithActuator(mgr manager.Manager, actuator Actuator) error {
 func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler {
 	r := &ReconcileMachine{
 		Client:        mgr.GetClient(),
-		eventRecorder: mgr.GetRecorder("machine-controller"),
+		eventRecorder: mgr.GetEventRecorderFor("machine-controller"),
 		config:        mgr.GetConfig(),
 		scheme:        mgr.GetScheme(),
 		nodeName:      os.Getenv(NodeNameEnvVar),
@@ -77,7 +78,7 @@ func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("machine-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("machine_controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -105,7 +106,7 @@ type ReconcileMachine struct {
 
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read
 // and what is in the Machine.Spec
-// +kubebuilder:rbac:groups=machine.openshift.io,resources=machines,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=machine.openshift.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// TODO(mvladev): Can context be passed from Kubebuilder?
 	ctx := context.TODO()
@@ -126,6 +127,13 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// Implement controller logic here
 	name := m.Name
 	klog.Infof("Reconciling Machine %q", name)
+
+	if errList := m.Validate(); len(errList) > 0 {
+		err := fmt.Errorf("%q machine validation failed: %v", m.Name, errList.ToAggregate().Error())
+		klog.Error(err)
+		r.eventRecorder.Eventf(m, corev1.EventTypeWarning, "FailedValidate", err.Error())
+		return reconcile.Result{}, err
+	}
 
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.
@@ -178,7 +186,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if !r.isDeleteAllowed(m) {
-			klog.Infof("Skipping reconciling of machine %q", name)
+			klog.Infof("Deleting machine hosting this controller is not allowed. Skipping reconciliation of machine %q", name)
 			return reconcile.Result{}, nil
 		}
 
@@ -191,18 +199,14 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		// deleted without a manual intervention.
 		if _, exists := m.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists && m.Status.NodeRef != nil {
 			if err := r.drainNode(m); err != nil {
-				return reconcile.Result{}, err
+				klog.Errorf("Failed to drain node for machine %q: %v", name, err)
+				return delayIfRequeueAfterError(err)
 			}
 		}
 
 		if err := r.actuator.Delete(ctx, cluster, m); err != nil {
-			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
-				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
-			}
-
 			klog.Errorf("Failed to delete machine %q: %v", name, err)
-			return reconcile.Result{}, err
+			return delayIfRequeueAfterError(err)
 		}
 
 		if m.Status.NodeRef != nil {
@@ -233,28 +237,17 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	if exist {
 		klog.Infof("Reconciling machine %q triggers idempotent update", name)
 		if err := r.actuator.Update(ctx, cluster, m); err != nil {
-			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
-				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
-			}
-
 			klog.Errorf(`Error updating machine "%s/%s": %v`, m.Namespace, name, err)
-			return reconcile.Result{}, err
+			return delayIfRequeueAfterError(err)
 		}
-
 		return reconcile.Result{}, nil
 	}
 
 	// Machine resource created. Machine does not yet exist.
 	klog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
 	if err := r.actuator.Create(ctx, cluster, m); err != nil {
-		if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
-			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
-		}
-
 		klog.Warningf("Failed to create machine %q: %v", name, err)
-		return reconcile.Result{}, err
+		return delayIfRequeueAfterError(err)
 	}
 
 	return reconcile.Result{}, nil
@@ -267,6 +260,11 @@ func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
 	}
 	node, err := kubeClient.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// If an admin deletes the node directly, we'll end up here.
+			klog.Infof("Could not find node from noderef, it may have already been deleted: %v", machine.Status.NodeRef.Name)
+			return nil
+		}
 		return fmt.Errorf("unable to get node %q: %v", machine.Status.NodeRef.Name, err)
 	}
 
@@ -295,13 +293,13 @@ func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
 	return nil
 }
 
-func (r *ReconcileMachine) getCluster(ctx context.Context, machine *machinev1.Machine) (*machinev1.Cluster, error) {
+func (r *ReconcileMachine) getCluster(ctx context.Context, machine *machinev1.Machine) (*clusterv1.Cluster, error) {
 	if machine.Labels[machinev1.MachineClusterLabelName] == "" {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machinev1.MachineClusterLabelName, machine.Namespace)
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machine.Namespace, machinev1.MachineClusterLabelName)
 		return nil, nil
 	}
 
-	cluster := &machinev1.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: machine.Namespace,
 		Name:      machine.Labels[machinev1.MachineClusterLabelName],
@@ -346,4 +344,13 @@ func (r *ReconcileMachine) deleteNode(ctx context.Context, name string) error {
 		return err
 	}
 	return r.Client.Delete(ctx, &node)
+}
+
+func delayIfRequeueAfterError(err error) (reconcile.Result, error) {
+	switch t := err.(type) {
+	case *controllerError.RequeueAfterError:
+		klog.Infof("Actuator returned requeue-after error: %v", err)
+		return reconcile.Result{Requeue: true, RequeueAfter: t.RequeueAfter}, nil
+	}
+	return reconcile.Result{}, err
 }

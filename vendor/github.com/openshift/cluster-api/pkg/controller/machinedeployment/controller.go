@@ -20,6 +20,7 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	"github.com/openshift/cluster-api/pkg/apis/machine/common"
 	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"github.com/openshift/cluster-api/pkg/util"
@@ -46,7 +47,7 @@ var (
 )
 
 // controllerName is the name of this controller
-const controllerName = "machinedeployment-controller"
+const controllerName = "machinedeployment_controller"
 
 // ReconcileMachineDeployment reconciles a MachineDeployment object.
 type ReconcileMachineDeployment struct {
@@ -57,7 +58,7 @@ type ReconcileMachineDeployment struct {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) *ReconcileMachineDeployment {
-	return &ReconcileMachineDeployment{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder(controllerName)}
+	return &ReconcileMachineDeployment{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor(controllerName)}
 }
 
 // Add creates a new MachineDeployment Controller and adds it to the Manager with default RBAC.
@@ -107,9 +108,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1beta1.MachineDeployment) ([]*v1beta1.MachineSet, error) {
 	// List all MachineSets to find those we own but that no longer match our selector.
 	machineSets := &v1beta1.MachineSetList{}
-	listOptions := &client.ListOptions{Namespace: d.Namespace}
-
-	if err := r.Client.List(context.Background(), listOptions, machineSets); err != nil {
+	if err := r.Client.List(context.Background(), machineSets, client.InNamespace(d.Namespace)); err != nil {
 		return nil, err
 	}
 
@@ -229,10 +228,11 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1beta1.M
 	}
 
 	// Add foregroundDeletion finalizer if MachineDeployment isn't deleted and linked to a cluster.
-	if cluster != nil && d.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.Contains(d.Finalizers, metav1.FinalizerDeleteDependents) {
-			d.Finalizers = append(d.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-		}
+	if cluster != nil &&
+		d.ObjectMeta.DeletionTimestamp.IsZero() &&
+		!util.Contains(d.Finalizers, metav1.FinalizerDeleteDependents) {
+
+		d.Finalizers = append(d.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
 
 		if err := r.Client.Update(context.Background(), d); err != nil {
 			klog.Infof("Failed to add finalizers to MachineSet %q: %v", d.Name, err)
@@ -269,13 +269,13 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1beta1.M
 	return reconcile.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
 }
 
-func (r *ReconcileMachineDeployment) getCluster(d *v1beta1.MachineDeployment) (*v1beta1.Cluster, error) {
+func (r *ReconcileMachineDeployment) getCluster(d *v1beta1.MachineDeployment) (*v1alpha1.Cluster, error) {
 	if d.Spec.Template.Labels[v1beta1.MachineClusterLabelName] == "" {
-		klog.Infof("Deployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, v1beta1.MachineClusterLabelName, d.Namespace)
+		klog.Infof("Deployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, d.Namespace, v1beta1.MachineClusterLabelName)
 		return nil, nil
 	}
 
-	cluster := &v1beta1.Cluster{}
+	cluster := &v1alpha1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: d.Namespace,
 		Name:      d.Spec.Template.Labels[v1beta1.MachineClusterLabelName],
@@ -297,8 +297,7 @@ func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1be
 	}
 
 	dList := &v1beta1.MachineDeploymentList{}
-	listOptions := &client.ListOptions{Namespace: ms.Namespace}
-	if err := r.Client.List(context.Background(), listOptions, dList); err != nil {
+	if err := r.Client.List(context.Background(), dList, client.InNamespace(ms.Namespace)); err != nil {
 		klog.Warningf("Failed to list machine deployments: %v", err)
 		return nil
 	}
@@ -336,8 +335,7 @@ func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1beta1.Machi
 	}
 
 	machines := &v1beta1.MachineList{}
-	listOptions := &client.ListOptions{Namespace: d.Namespace}
-	if err = r.Client.List(context.Background(), listOptions.MatchingLabels(selector), machines); err != nil {
+	if err = r.Client.List(context.Background(), machines, client.InNamespace(d.Namespace), client.MatchingLabels(selector)); err != nil {
 		return nil, err
 	}
 
