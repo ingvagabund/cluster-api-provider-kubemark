@@ -177,7 +177,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 	// Take the first worker machineset (assuming only worker machines are backed by machinesets)
 	machinesets := machinev1beta1.MachineSetList{}
 	if err := wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		if err := F.Client.List(context.TODO(), &client.ListOptions{}, &machinesets); err != nil {
+		if err := F.Client.List(context.TODO(), &machinesets); err != nil {
 			glog.Errorf("Error querying api for machineset object: %v, retrying...", err)
 			return false, nil
 		}
@@ -212,9 +212,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 	// Wait until both new nodes are ready
 	if err := wait.PollImmediate(1*time.Second, 10*time.Minute, func() (bool, error) {
 		nodes := v1.NodeList{}
-		listOpt := &client.ListOptions{}
-		listOpt.MatchingLabels(nodeDrainLabels)
-		if err := F.Client.List(context.TODO(), listOpt, &nodes); err != nil {
+		if err := F.Client.List(context.TODO(), &nodes, client.MatchingLabels(nodeDrainLabels)); err != nil {
 			glog.Errorf("Error querying api for Node object: %v, retrying...", err)
 			return false, nil
 		}
@@ -322,9 +320,7 @@ func ExpectNodeToBeDrainedBeforeMachineIsDeleted() error {
 		glog.Infof("Node %q is mark unschedulable as expected", node.Name)
 
 		pods := v1.PodList{}
-		listOpt := &client.ListOptions{}
-		listOpt.MatchingLabels(rc.Spec.Selector)
-		if err := F.Client.List(context.TODO(), listOpt, &pods); err != nil {
+		if err := F.Client.List(context.TODO(), &pods, client.MatchingLabels(rc.Spec.Selector)); err != nil {
 			glog.Errorf("Error querying api for Pods object: %v, retrying...", err)
 			return false, nil
 		}

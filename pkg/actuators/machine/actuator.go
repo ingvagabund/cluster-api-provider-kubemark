@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	providerconfigv1 "github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig/v1beta1"
+	v1alpha1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	clustererror "github.com/openshift/cluster-api/pkg/controller/error"
 	apierrors "github.com/openshift/cluster-api/pkg/errors"
@@ -104,7 +105,7 @@ func (a *Actuator) handleMachineError(machine *machinev1.Machine, err *apierrors
 }
 
 // Create runs a new kubemark instance
-func (a *Actuator) Create(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) Create(context context.Context, cluster *v1alpha1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("creating machine")
 	instance, err := a.CreateMachine(cluster, machine)
 	if err != nil {
@@ -215,7 +216,7 @@ func (a *Actuator) staticMachinePod(machine *machinev1.Machine) (*corev1.Pod, er
 }
 
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
-func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) (*corev1.Pod, error) {
+func (a *Actuator) CreateMachine(cluster *v1alpha1.Cluster, machine *machinev1.Machine) (*corev1.Pod, error) {
 	kubeClient, err := kubernetes.NewForConfig(a.config)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build kube client: %v", err)
@@ -357,7 +358,7 @@ func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.
 }
 
 // Delete deletes a machine and updates its finalizer
-func (a *Actuator) Delete(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) Delete(context context.Context, cluster *v1alpha1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("deleting machine")
 	if err := a.DeleteMachine(cluster, machine); err != nil {
 		glog.Errorf("error deleting machine: %v", err)
@@ -377,7 +378,7 @@ func (gl *glogLogger) Logf(format string, v ...interface{}) {
 }
 
 // DeleteMachine deletes an AWS instance
-func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) DeleteMachine(cluster *v1alpha1.Cluster, machine *machinev1.Machine) error {
 	if _, isStaticMachine := machine.Annotations[StaticMachineAnnotation]; isStaticMachine {
 		glog.Infof("Deleting static machines %q", machine.Name)
 		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Deleted machine %v", machine.Name)
@@ -406,7 +407,7 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 	// Thus, re-queue with error.
 	// (pods may stay in terminated state for a while)
 	if err := kubeClient.CoreV1().Pods(machinePod.Namespace).Delete(machinePod.Name, nil); err != nil {
-		glog.Warning("unable to get machine pod for %v/%v: %v", machine.Namespace, machine.Name, err)
+		glog.Warningf("unable to get machine pod for %v/%v: %v", machine.Namespace, machine.Name, err)
 		return a.handleMachineError(machine, apierrors.DeleteMachine(err.Error()), noEventAction)
 	}
 
@@ -418,7 +419,7 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 // Update attempts to sync machine state with an existing instance. Today this just updates status
 // for details that may have changed. (IPs and hostnames) We do not currently support making any
 // changes to actual machines in AWS. Instead these will be replaced via MachineDeployments.
-func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) Update(context context.Context, cluster *v1alpha1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("updating machine")
 
 	if _, isStaticMachine := machine.Annotations[StaticMachineAnnotation]; isStaticMachine {
@@ -470,7 +471,7 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 
 // Exists determines if the given machine currently exists. For AWS we query for instances in
 // running state, with a matching name tag, to determine a match.
-func (a *Actuator) Exists(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) (bool, error) {
+func (a *Actuator) Exists(context context.Context, cluster *v1alpha1.Cluster, machine *machinev1.Machine) (bool, error) {
 	glog.Info("checking if machine exists")
 
 	if _, isStaticMachine := machine.Annotations[StaticMachineAnnotation]; isStaticMachine {

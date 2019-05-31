@@ -16,6 +16,7 @@ import (
 
 	machineactuator "github.com/openshift/cluster-api-provider-kubemark/pkg/actuators/machine"
 	"github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig/v1beta1"
+	v1alpha1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 )
 
@@ -47,13 +48,13 @@ func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*c
 	return &machine, nil
 }
 
-func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc string) (*clusterv1.Cluster, *clusterv1.Machine, error) {
+func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc string) (*v1alpha1.Cluster, *clusterv1.Machine, error) {
 	machine, err := readMachineManifest(manifestParams, machineLoc)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	cluster := &clusterv1.Cluster{}
+	cluster := &v1alpha1.Cluster{}
 	bytes, err := ioutil.ReadFile(clusterLoc)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)

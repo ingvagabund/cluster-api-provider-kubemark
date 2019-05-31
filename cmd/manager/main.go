@@ -85,7 +85,7 @@ func initActuator(mgr manager.Manager) (*machineactuator.Actuator, error) {
 		Client:        mgr.GetClient(),
 		Config:        mgr.GetConfig(),
 		Codec:         codec,
-		EventRecorder: mgr.GetRecorder("kubemark-controller"),
+		EventRecorder: mgr.GetEventRecorderFor("kubemark-controller"),
 	}
 
 	actuator, err := machineactuator.NewActuator(params)

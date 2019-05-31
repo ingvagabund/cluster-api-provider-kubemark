@@ -21,44 +21,22 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	providerconfigv1 "github.com/openshift/cluster-api-provider-kubemark/pkg/apis/kubemarkproviderconfig/v1beta1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
-	"golang.org/x/net/context"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // providerConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
 func providerConfigFromMachine(client client.Client, machine *machinev1.Machine, codec *providerconfigv1.KubemarkProviderConfigCodec) (*providerconfigv1.KubemarkMachineProviderConfig, error) {
-	var providerSpecRawExtention runtime.RawExtension
 	providerSpec := machine.Spec.ProviderSpec
-	if providerSpec.Value == nil && providerSpec.ValueFrom == nil {
+	if providerSpec.Value == nil {
 		return nil, fmt.Errorf("unable to find machine provider config: neither Spec.ProviderSpec.Value nor Spec.ProviderSpec.ValueFrom set")
 	}
 
-	// If no providerSpec.Value then we lookup for machineClass
-	if providerSpec.Value != nil {
-		providerSpecRawExtention = *providerSpec.Value
-	} else {
-		if providerSpec.ValueFrom.MachineClass == nil {
-			return nil, fmt.Errorf("unable to find MachineClass on Spec.ProviderSpec.ValueFrom")
-		}
-		machineClass := &machinev1.MachineClass{}
-		key := types.NamespacedName{
-			Namespace: providerSpec.ValueFrom.MachineClass.Namespace,
-			Name:      providerSpec.ValueFrom.MachineClass.Name,
-		}
-		if err := client.Get(context.Background(), key, machineClass); err != nil {
-			return nil, err
-		}
-		providerSpecRawExtention = machineClass.ProviderSpec
-	}
-
 	var config providerconfigv1.KubemarkMachineProviderConfig
-	if err := codec.DecodeProviderSpec(&machinev1.ProviderSpec{Value: &providerSpecRawExtention}, &config); err != nil {
+	if err := codec.DecodeProviderSpec(&machinev1.ProviderSpec{Value: providerSpec.Value}, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil

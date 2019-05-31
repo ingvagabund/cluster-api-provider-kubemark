@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	clusterv1alpha1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"github.com/openshift/cluster-api/pkg/util"
 	"github.com/pkg/errors"
@@ -53,7 +54,7 @@ var (
 	stateConfirmationInterval = 100 * time.Millisecond
 
 	// controllerName is the name of this controller
-	controllerName = "machineset-controller"
+	controllerName = "machineset_controller"
 )
 
 // Add creates a new MachineSet Controller and adds it to the Manager with default RBAC.
@@ -65,7 +66,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) *ReconcileMachineSet {
-	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder(controllerName)}
+	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor(controllerName)}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -175,7 +176,7 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *machine
 
 	allMachines := &machinev1beta1.MachineList{}
 
-	if err := r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines); err != nil {
+	if err := r.Client.List(context.Background(), allMachines, client.InNamespace(machineSet.Namespace)); err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to list machines")
 	}
 
@@ -210,10 +211,11 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *machine
 	}
 
 	// Add foregroundDeletion finalizer if MachineSet isn't deleted and linked to a cluster.
-	if cluster != nil && machineSet.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
-			machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-		}
+	if cluster != nil &&
+		machineSet.ObjectMeta.DeletionTimestamp.IsZero() &&
+		!util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
+
+		machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
 
 		if err := r.Client.Update(context.Background(), machineSet); err != nil {
 			klog.Infof("Failed to add finalizers to MachineSet %q: %v", machineSet.Name, err)
@@ -291,13 +293,13 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *machine
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileMachineSet) getCluster(ms *machinev1beta1.MachineSet) (*machinev1beta1.Cluster, error) {
+func (r *ReconcileMachineSet) getCluster(ms *machinev1beta1.MachineSet) (*clusterv1alpha1.Cluster, error) {
 	if ms.Spec.Template.Labels[machinev1beta1.MachineClusterLabelName] == "" {
-		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, machinev1beta1.MachineClusterLabelName, ms.Namespace)
+		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, ms.Namespace, machinev1beta1.MachineClusterLabelName)
 		return nil, nil
 	}
 
-	cluster := &machinev1beta1.Cluster{}
+	cluster := &clusterv1alpha1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: ms.Namespace,
 		Name:      ms.Spec.Template.Labels[machinev1beta1.MachineClusterLabelName],
@@ -348,8 +350,13 @@ func (r *ReconcileMachineSet) syncReplicas(ms *machinev1beta1.MachineSet, machin
 		klog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d",
 			controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
+		deletePriorityFunc, err := getDeletePriorityFunc(ms)
+		if err != nil {
+			return err
+		}
+		klog.Infof("Found %s delete policy", ms.Spec.DeletePolicy)
 		// Choose which Machines to delete.
-		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, simpleDeletePriority)
+		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 
 		// TODO: Add cap to limit concurrent delete calls.
 		errCh := make(chan error, diff)

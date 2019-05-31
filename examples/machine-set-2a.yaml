@@ -4,6 +4,8 @@ kind: MachineSet
 metadata:
   name: kubemark-scale-group-2a
   namespace: kube-system
+  labels:
+    machine.openshift.io/cluster-api-cluster: kubemark
 spec:
   replicas: 0
   selector:
@@ -13,6 +15,7 @@ spec:
     metadata:
       labels:
         sigs.k8s.io/cluster-api-machineset: kubemark-scale-group-2a
+        machine.openshift.io/cluster-api-cluster: kubemark
     spec:
       metadata:
         labels:
