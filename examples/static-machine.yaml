@@ -6,6 +6,8 @@ metadata:
   namespace: kube-system
   annotations:
     machine.openshift.io/static-machine: minikube
+  labels:
+    machine.openshift.io/cluster-api-cluster: kubemark
 spec:
   providerSpec:
     value:

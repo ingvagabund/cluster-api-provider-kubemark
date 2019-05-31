@@ -13,6 +13,7 @@ spec:
     metadata:
       labels:
         sigs.k8s.io/cluster-api-machineset: kubemark-scale-group-2a
+        machine.openshift.io/cluster-api-cluster: kubemark
     spec:
       metadata:
         labels:

@@ -13,6 +13,7 @@ spec:
     metadata:
       labels:
         sigs.k8s.io/cluster-api-machineset: test-kubemark-red
+        machine.openshift.io/cluster-api-cluster: kubemark
     spec:
       metadata:
         labels:
@@ -40,6 +41,7 @@ spec:
     metadata:
       labels:
         sigs.k8s.io/cluster-api-machineset: test-kubemark-green
+        machine.openshift.io/cluster-api-cluster: kubemark
     spec:
       metadata:
         labels:
@@ -67,6 +69,7 @@ spec:
     metadata:
       labels:
         sigs.k8s.io/cluster-api-machineset: test-kubemark-blue
+        machine.openshift.io/cluster-api-cluster: kubemark
     spec:
       metadata:
         labels:
