@@ -16,6 +16,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 	machineactuator "github.com/openshift/cluster-api-provider-kubemark/pkg/actuators/machine"
@@ -30,9 +31,12 @@ import (
 )
 
 func main() {
+	watchNamespace := flag.String("namespace", "", "Namespace that the controller watches to reconcile machine-api objects. If unspecified, the controller watches for machine-api objects across all namespaces.")
+
 	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(klogFlags)
 	flag.Parse()
+
 	flag.VisitAll(func(f1 *flag.Flag) {
 		f2 := klogFlags.Lookup(f1.Name)
 		if f2 != nil {
@@ -47,8 +51,18 @@ func main() {
 		glog.Fatal(err)
 	}
 
+	syncPeriod := 10 * time.Minute
+	opts := manager.Options{
+		SyncPeriod: &syncPeriod,
+	}
+
+	if *watchNamespace != "" {
+		opts.Namespace = *watchNamespace
+		klog.Infof("Watching machine-api objects only in namespace %q for reconciliation.", opts.Namespace)
+	}
+
 	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, opts)
 	if err != nil {
 		glog.Fatal(err)
 	}
