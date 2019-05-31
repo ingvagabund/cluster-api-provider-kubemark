@@ -4,6 +4,8 @@ kind: Machine
 metadata:
   name: kubemark-actuator-testing-machine
   namespace: default
+  labels:
+    machine.openshift.io/cluster-api-cluster: kubemark
 spec:
   providerSpec:
     value:
