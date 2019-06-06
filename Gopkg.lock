@@ -163,6 +163,17 @@
   revision = "c65c006176ff7ff98bb916961c7abbc6b0afc0aa"
 
 [[projects]]
+  digest = "1:a4d405d026d18a1434ffbfc06177caf099279298f35444922701cf0afa59400a"
+  name = "github.com/golang/mock"
+  packages = [
+    "mockgen",
+    "mockgen/model",
+  ]
+  pruneopts = "T"
+  revision = "9fa652df1129bef0e734c9cf9bf6dbae9ef3b9fa"
+  version = "1.3.1"
+
+[[projects]]
   digest = "1:a2ecb56e5053d942aafc86738915fb94c9131bac848c543b8b6764365fd69080"
   name = "github.com/golang/protobuf"
   packages = [
@@ -389,7 +400,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:868d90b322bddb4c76d577f3457f0b46f5306810b0c74e4832314c909702d01a"
+  digest = "1:9e1247f48a1cad8b678ee1e8b11b9c864824008c5bace4893d599818a3defaf9"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
     "pkg/e2e/autoscaler",
@@ -400,7 +411,7 @@
     "pkg/types",
   ]
   pruneopts = ""
-  revision = "7628df78fb4c697fd8244495271b45af95a2184a"
+  revision = "079636006a97adfbf6d610b006e25e77d03d4aec"
 
 [[projects]]
   branch = "master"
@@ -650,9 +661,15 @@
   name = "golang.org/x/tools"
   packages = [
     "go/ast/astutil",
+    "go/gcexportdata",
+    "go/internal/cgo",
+    "go/internal/gcimporter",
+    "go/packages",
+    "go/types/typeutil",
     "imports",
     "internal/fastwalk",
     "internal/gopathwalk",
+    "internal/semver",
   ]
   pruneopts = "T"
   revision = "45ff765b4815d34d8b80220fd05c79063b185ce1"
@@ -1140,6 +1157,7 @@
     "github.com/emicklei/go-restful",
     "github.com/ghodss/yaml",
     "github.com/golang/glog",
+    "github.com/golang/mock/mockgen",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/autoscaler",
