@@ -7,9 +7,6 @@ metadata:
     api: clusterapi
     k8s-app: controller
 spec:
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 65534
   selector:
     matchLabels:
       api: clusterapi
@@ -21,6 +18,9 @@ spec:
         api: clusterapi
         k8s-app: controller
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
       nodeSelector:
         node-role.kubernetes.io/master: ""
       tolerations:
