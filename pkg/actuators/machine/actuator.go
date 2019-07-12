@@ -18,8 +18,10 @@ package machine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -55,8 +57,12 @@ const (
 	kubemarkNamespace     = "kubemark-actuator"
 	machineNameLabel      = "machine.k8s.io/machine-name"
 	machineNamespaceLabel = "machine.k8s.io/machine-namespace"
+
 	// StaticMachineAnnotation annotation to back up a node but without an instance reconciliation
 	StaticMachineAnnotation = "machine.openshift.io/static-machine"
+
+	// DeletionTimeoutAnnotation annotation to create a delay before machine is deleted by the actuator
+	DeletionTimeoutAnnotation = "machine.openshift.io/deletion-timeout"
 )
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
@@ -383,6 +389,39 @@ func (a *Actuator) DeleteMachine(cluster *v1alpha1.Cluster, machine *machinev1.M
 		glog.Infof("Deleting static machines %q", machine.Name)
 		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Deleted machine %v", machine.Name)
 		return nil
+	}
+
+	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
+	if err != nil {
+		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
+	}
+
+	if machineProviderConfig.DeletionTimeout != nil {
+		timeout, HasTimeout := machine.Annotations[DeletionTimeoutAnnotation]
+		if !HasTimeout {
+			newMachine := machine.DeepCopy()
+			if newMachine.Annotations == nil {
+				newMachine.Annotations = make(map[string]string)
+			}
+			newMachine.Annotations[DeletionTimeoutAnnotation] = fmt.Sprintf("%d", metav1.Now().Time.Unix())
+			if err := a.client.Patch(context.Background(), newMachine, client.MergeFrom(machine)); err != nil {
+				return a.handleMachineError(machine, apierrors.DeleteMachine("error annotating machine %q with %q annotation: %v", machine.Name, DeletionTimeoutAnnotation), deleteEventAction)
+			}
+			errStr := fmt.Sprintf("Machine %q has DeletionTimeout specified. Waiting for %v.", machine.Name, machineProviderConfig.DeletionTimeout.Duration)
+			glog.Info(errStr)
+			return errors.New(errStr)
+		}
+
+		to, err := strconv.ParseInt(timeout, 10, 64)
+		if err != nil {
+			return a.handleMachineError(machine, apierrors.DeleteMachine("error parsing machine %q's annotation %v: %v", machine.Name, DeletionTimeoutAnnotation, err), deleteEventAction)
+		}
+
+		if time.Unix(to, 0).Add(machineProviderConfig.DeletionTimeout.Duration).After(metav1.Now().Time) {
+			errStr := fmt.Sprintf("Machine %q has DeletionTimeout specified. Waiting for %v.", machine.Name, time.Unix(to, 0).Add(machineProviderConfig.DeletionTimeout.Duration).Sub(metav1.Now().Time))
+			glog.Info(errStr)
+			return errors.New(errStr)
+		}
 	}
 
 	machinePod, err := a.getMachinePod(machine)

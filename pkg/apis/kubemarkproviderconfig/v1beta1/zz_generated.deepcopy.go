@@ -18,6 +18,7 @@
 package v1beta1
 
 import (
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -46,6 +47,15 @@ func (in *KubemarkMachineProviderConfig) DeepCopyInto(out *KubemarkMachineProvid
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	out.UnhealthyDuration = in.UnhealthyDuration
 	out.HealthyDuration = in.HealthyDuration
+	if in.DeletionTimeout != nil {
+		in, out := &in.DeletionTimeout, &out.DeletionTimeout
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(v1.Duration)
+			**out = **in
+		}
+	}
 	return
 }
 

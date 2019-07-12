@@ -58,7 +58,7 @@ generate:
 gendeepcopy:
 	cd ./vendor/k8s.io/code-generator/cmd && go install ./deepcopy-gen
 	deepcopy-gen \
-	  -i ./pkg/apis/kubemarkproviderconfig/v1alpha1/ \
+	  -i ./pkg/apis/kubemarkproviderconfig/v1beta1/ \
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 
