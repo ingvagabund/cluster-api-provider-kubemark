@@ -88,6 +88,9 @@ Currently the kubemark actuator allows to configure the following test scenarios
   image: gofed/kubemark:v1.11.3-6
   ```
 
+Other configuration options:
+- `deletionTimeout` - how much time to wait before a machine gets deleted from the cluster after setting machine deletion timestamp
+
 ## Kubemark
 
 The provided kubemark (through `gofed/kubemark-machine-controllers:d4f6edb`) is slightly updated version of the kubemark.

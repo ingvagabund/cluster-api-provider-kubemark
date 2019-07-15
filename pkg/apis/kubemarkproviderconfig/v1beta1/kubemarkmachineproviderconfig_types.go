@@ -106,6 +106,9 @@ type KubemarkMachineProviderConfig struct {
 
 	// Kubemark image with hollow kubelet to run
 	Image string `json:"image"`
+
+	// Time after which machine gets deleted by the actuator
+	DeletionTimeout *metav1.Duration `json:"deletionTimeout"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
