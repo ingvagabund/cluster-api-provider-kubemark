@@ -90,6 +90,8 @@ Currently the kubemark actuator allows to configure the following test scenarios
 
 Other configuration options:
 - `deletionTimeout` - how much time to wait before a machine gets deleted from the cluster after setting machine deletion timestamp
+- `numCores` - for a number of cores a kubemark node will report
+- `memoryCapacity` - for memory a kubemark node will report
 
 ## Kubemark
 
@@ -105,7 +107,7 @@ The list of PRs that allow kubemark to force kubelet to have node go Unready and
 **How to build the kubemark image**
 
 1. Clone `k8s.io/kubernetes` repo under `$GOPATH/src/k8s.io/kubernetes`
-1. Checkout to required version (e.g. `$ git checkout v1.11.3`)
+1. Checkout to required version (e.g. `$ git checkout v1.14.3`)
 1. Apply the PRs (and rebase if needed)
 1. Run `make WHAT="cmd/kubemark"`
 1. `$ cp _output/bin/kubemark cluster/images/kubemark/`
@@ -115,8 +117,7 @@ The list of PRs that allow kubemark to force kubelet to have node go Unready and
 
 **Available kubemark images**
 
-* `docker.io/gofed/kubemark:v1.14.3-beta.0-1`
-* `docker.io/gofed/kubemark:v1.13.7-beta.0-1`
-* `docker.io/gofed/kubemark:v1.11.3-6`
+* `docker.io/gofed/kubemark:v1.14.3-beta.0-2`
+* `docker.io/gofed/kubemark:v1.13.7-beta.0-2`
 
 Set through `image` of  `KubemarkMachineProviderConfig`.

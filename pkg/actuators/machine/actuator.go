@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -258,11 +259,19 @@ func (a *Actuator) CreateMachine(cluster *v1alpha1.Cluster, machine *machinev1.M
 		// TODO(jchaloup): remove broken pods (whatever that means)
 	}
 
-	var testFlags string
+	var testFlags []string
 	if machineProviderConfig.TurnUnhealthyAfter {
-		testFlags = fmt.Sprintf("--turn-unhealthy-after=true --healthy-duration=%v", machineProviderConfig.HealthyDuration.Duration)
+		testFlags = append(testFlags, "--turn-unhealthy-after=true", fmt.Sprintf("--healthy-duration=%v", machineProviderConfig.HealthyDuration.Duration))
 	} else if machineProviderConfig.TurnUnhealthyPeriodically {
-		testFlags = fmt.Sprintf("--turn-unhealthy-periodically=true --unhealthy-duration=%v --healthy-duration=%v", machineProviderConfig.UnhealthyDuration.Duration, machineProviderConfig.HealthyDuration.Duration)
+		testFlags = append(testFlags, "--turn-unhealthy-periodically=true", fmt.Sprintf("--unhealthy-duration=%v", machineProviderConfig.UnhealthyDuration.Duration), fmt.Sprintf("--healthy-duration=%v", machineProviderConfig.HealthyDuration.Duration))
+	}
+
+	if machineProviderConfig.NumCores != nil {
+		testFlags = append(testFlags, fmt.Sprintf("--num-cores=%v", *machineProviderConfig.NumCores))
+	}
+
+	if machineProviderConfig.MemoryCapacity != nil {
+		testFlags = append(testFlags, fmt.Sprintf("--memory-capacity=%v", *machineProviderConfig.MemoryCapacity))
 	}
 
 	// Just create pod/RC deploying hollow node.
@@ -318,7 +327,7 @@ func (a *Actuator) CreateMachine(cluster *v1alpha1.Cluster, machine *machinev1.M
 							},
 						},
 					},
-					Command: []string{"/bin/sh", "-c", fmt.Sprintf("/kubemark --morph=kubelet --name=$(NODE_NAME) %v --node-status-update-frequency=2s --no-schedule=true --kube-api-content-type=application/vnd.kubernetes.protobuf --alsologtostderr", testFlags)},
+					Command: []string{"/bin/sh", "-c", fmt.Sprintf("/kubemark --morph=kubelet --name=$(NODE_NAME) %v --node-status-update-frequency=2s --no-schedule=true --kube-api-content-type=application/vnd.kubernetes.protobuf --alsologtostderr", strings.Join(testFlags, " "))},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu":    resource.MustParse("40m"),

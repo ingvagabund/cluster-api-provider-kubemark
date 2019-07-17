@@ -109,6 +109,12 @@ type KubemarkMachineProviderConfig struct {
 
 	// Time after which machine gets deleted by the actuator
 	DeletionTimeout *metav1.Duration `json:"deletionTimeout"`
+
+	// NumCores for a number of cores a kubemark node will claim to have
+	NumCores *int `json:"numCores"`
+
+	// NMemoryCapacityumCores for a memory a kubemark node will claim to have
+	MemoryCapacity *uint `json:"memoryCapacity"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

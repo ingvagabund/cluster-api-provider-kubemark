@@ -56,6 +56,24 @@ func (in *KubemarkMachineProviderConfig) DeepCopyInto(out *KubemarkMachineProvid
 			**out = **in
 		}
 	}
+	if in.NumCores != nil {
+		in, out := &in.NumCores, &out.NumCores
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int)
+			**out = **in
+		}
+	}
+	if in.MemoryCapacity != nil {
+		in, out := &in.MemoryCapacity, &out.MemoryCapacity
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(uint)
+			**out = **in
+		}
+	}
 	return
 }
 
